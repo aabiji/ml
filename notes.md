@@ -1,8 +1,24 @@
-# Questions
+# Probability
 
-- Why ReLU specifically?
+- $Pr(x)$, a [probability density function](https://medium.com/@kavya8a/understanding-probability-density-functions-a-beginners-guide-06c9821ed5c0) (PDF), assigns a non negative probability *density* to every value in the input domain. $\int Pr(x) \,dx = 1$. We are assuming that random variables are continuous.
 
-# Neural network fundamentals
+- A joint probability distribution (ex: $Pr(x, y)$, probability of $x$ and $y$) assigns a probability to every *combination* of values. $\int \int Pr(x, y) \,dxdy = 1$, the sum of the probability distributions of all the variables needs to equal 1.
+
+- A marginal distribution is the sum of the probabilities of a particular value for every other value, for every value. For example with $Pr(x, y)$, the marginal distribution $Pr(x)$, is a probability distribution where every probability associated to a particular $x$ is the sum of the probability of $x$ occuring at at each y value. For example, if we have a joint probability distribution of height (h) and weight (w), $Pr(h, w)$, then $Pr(h)$ is the probability distribution of height at any given weight. Marginalization allows us to move from joint probability space to an independent variable space.
+
+- A conditional probability $Pr(x|y)$ is the probability of x given y. For example, if you wanted the probability of someone being 6ft tall given that they are 200 lbs, you would divide the probability that someone is 6ft tall and 200 lbs and divide that by that the probability that someone is 200 lbs.
+$$Pr(x|y) = \frac{Pr(x, y)}{Pr(y)}$$
+
+- *Variance* is the average squared distance from the mean.
+
+- *[KL Divergence](https://www.datacamp.com/tutorial/kl-divergence)* is a measure of how much the test distribution diverges
+  from the correct distribution. Remember that entropy is just a weighted sum of surprisal. We subtract cross entropy from entropy.
+  Ideally, the two distributions $p(x)$ (actual) and $q(x)$ (test) are equal, so the entropy and the cross entropy are equal, and the divergence is zero.
+  $$D_{KL}[P || Q] = \int_{-\infty}^{\infty} p(x)\log{\frac{P(x)}{Q(x)}}$$
+
+- The *[Dirac Delta Function](https://math.libretexts.org/Bookshelves/Differential_Equations/Introduction_to_Partial_Differential_Equations_(Herman)/09%3A_Transform_Techniques_in_Physics/9.04%3A_The_Dirac_Delta_Function)*: is +infinity at 0 and 0 everywhere else. The integral of the function over its entire domain is 1. It's useful for modelling impulses.
+
+# Supervised learning
 
 - A model is a mathematical function defined by parameters that map an input to an output.
   Each parameter depends on a corresponding input value.
@@ -33,9 +49,6 @@
   With enough capacity (hidden units), the network can approximate any function at a given resolution (Universal approximation theorem). This is because
   as you add more hidden units, they describe smaller and smaller portions of the function that is more accurately described by a line. (*p. 30, figure 3.5*)
 
-- To have a multivariate output, express the parameters that weigh the hidden units as a matrix instead of a vector
-- To have a multivariate input, add more terms to the hidden unit's linear function
-
 - To visualize multivariate inputs, the dimension of the output is the number of inputs plus 1 (the input is an axis and each output is an axis) (*p.32 figure 3.8*).
   Which is why non trivial neural networks are impossible to visualize. (*p.34 figure 3.10*)
   For example, with a network with 1 output and 1 input, the x and y axes could correspond to the first and second input, and the depth (z) could correspond to the function output,
@@ -49,7 +62,7 @@
 
 - A polytope is an N-dimensional object with flat faces. (ex: a polygon is a 2d polytope, a polyhedron is a 3d polytope).
 
-- Binomial coefficient is a positive integer describing how many times $k$ items can be chosen from `n` items.
+- Binomial coefficient is a positive integer describing how many times $k$ items can be chosen from $n$ items.
 
 - By adding more layers to the network, we're *composing* functions.
   For example, with a single hidden layer, the model can be thought of as $y = f(x)$.
@@ -69,6 +82,8 @@
 
 - The equations that govern a deep neural network are easily vectorized (p.48, *figure 4.6*).
   Let $y$ be the output, $h$ be a network layer, $K$ be the number of layers, exlcuding the input and output layres, $D_j$ be the number of hidden units at layer $j \in [1, K]$, $D_i$ be the number of network inputs, and $D_o$ be the number of network outputs.  The bias matrix has dimension $D_{j + 1} \times 1$, and the weight matrix has dimension $D_{j + 1} \times D_{j}$.
+$$y = f[\bold{x}, \phi]$$
+$$\phi \in [\boldsymbol{\beta}, \boldsymbol{\Omega}]$$
 $$\bold{h_j} = a[\boldsymbol{\beta_{j - 1}} + \boldsymbol{\Omega_{j - 1}}\boldsymbol{h_{j - 1}}]$$
 $$\bold{y} = \boldsymbol{\beta_j} + \boldsymbol{\Omega_j}\boldsymbol{h_j}$$
 
@@ -77,13 +92,65 @@ $$\bold{y} = \boldsymbol{\beta_j} + \boldsymbol{\Omega_j}\boldsymbol{h_j}$$
 
 - We can create a lot of linear regions with few parameters, but they depend on each other in ways that quickly become hard to understand.
 
-# Probability
+- Gaussian distribution: univariate normal distribution.
 
-- $Pr(x)$, a [probability density function](https://medium.com/@kavya8a/understanding-probability-density-functions-a-beginners-guide-06c9821ed5c0) (PDF), assigns a non negative probability *density* to every value in the input domain. $\int Pr(x) \,dx = 1$. We are assuming that random variables are continuous.
+- A model no longer computes an output directly, but instead computes a set of parameters ($\theta$) that describe *a probability distribution*.
+  Minimizing the loss function $L[\phi]$ means maximizing $Pr(y|\theta)$.
+  For example, if we know that our output ($y$) follows a Gaussian distribution, then we'll make the model output the distribution's mean. The goal would be
+  that the model outputs $y$ as the mean value, maximizing $Pr(y|\theta)$. To do this, we would want to minimize the distance between $y$ and the
+  mean, ... mean squared error!
 
-- A joint probability distribution (ex: $Pr(x, y)$, probability of $x$ and $y$) assigns a probability to every *combination* of values. $\int \int Pr(x, y) \,dxdy = 1$, the sum of the probability distributions of all the variables needs to equal 1.
+- In general, we want to choose network parameters that satisfy the maximum likelyhood criterion of our distribution. Parameters that will
+  maximize the probability that the model produces the expected output given an input across all training samples. The following are three different
+  ways of saying the same thing (where $I$ is the number of samples).
+$$
+\begin{align}
+\boldsymbol{\hat{\phi}} &= \underset{\phi}{\text{argmax}}[\prod_{i = 1}^{I} Pr(y_i|x_i)]\\
+                        &= \underset{\phi}{\text{argmax}}[\prod_{i = 1}^{I} Pr(y_i|\theta_i)]\\
+                        &= \underset{\phi}{\text{argmax}}[\prod_{i = 1}^{I} Pr(y_i|f[\bold{x_i}, \boldsymbol{\phi}])]
+\end{align}
+$$
+- It's more practical to take the sum of the log of all the probabilities, since they may be very small. Also, by convention we want our loss function
+  to minimize loss, which can be acheived by multiplying the sum by -1 and using argmin. This is the *negative log-likelihood*!
+$$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \log[Pr(y_i|f[\bold{x_i}, \boldsymbol{\phi}])]]$$
+- During inference, our output value is the maximum of the output probability distribution.
 
-- A marginal distribution is the sum of the probabilities of a particular value for every other value, for every value. For example with $Pr(x, y)$, the marginal distribution $Pr(x)$, is a probability distribution where every probability associated to a particular $x$ is the sum of the probability of $x$ occuring at at each y value. For example, if we have a joint probability distribution of height (h) and weight (w), $Pr(h, w)$, then $Pr(h)$ is the probability distribution of height at any given weight. Marginalization allows us to move from joint probability space to an independent variable space.
+- A heteroscedastic model is one where its uncertainty varies with its input. A homoscedastic model is one where its uncertainty is constant.
 
-- A conditional probability $Pr(x|y)$ is the probability of x given y. For example, if you wanted the probability of someone being 6ft tall given that they are 200 lbs, you would divide the probability that someone is 6ft tall and 200 lbs and divide that by that the probability that someone is 200 lbs.
-$$Pr(x|y) = \frac{Pr(x, y)}{Pr(y)}$$
+- The *sigmoid* function maps a real value $z$ to a range of $[0, 1]$.
+$$\text{sig}[z] = \frac{1}{1 + \text{exp}[-z]}$$
+
+- The *softmax* function maps a vector of real values $\bold{z}$ to a vector of numbers in a range of 0 to 1, where all the numbers sum to 1.
+$$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
+
+- **Model training flow (p.60)**:
+  1. Pick a good good loss function:
+     Choose a suitable probability distribution over your output, defined using parameters $\theta$, such that $\theta = f[\bold{x}, \boldsymbol{\phi}]$.
+  2. Iteratively compute model parameters $\phi$ that minimize loss function.
+  3. For inference, use the entire output probability distribution, or choose its maximum value (what's most likely).
+
+- **Loss functions**:
+  - *Mean squared error* is used when you assume that the output follows a Gaussian distribution (ex: regression problems).
+    When performing inference, the model output is $\hat{\bold{y}} = f[\bold{x}, \boldsymbol{\phi}]$, since the model produces
+    the mean of the output Gaussian distribution, which just happens to be the distribution's maximum. In addition to using the mean
+    in the loss function, we could also add variance, which is this case measures how certain the output is (high variance = high uncertainty since
+    the distribution would be spread out more).
+    $$L[\phi] = \sum_{i = 1}^{I} (\bold{y_i} - f[\bold{x_i}, \boldsymbol{\phi}])^2$$
+
+  - *Binary cross-entropy loss* is used in binary classification problems. A suitable probability distribution would be a
+    Bernouilli distribution, where the probability of the first option is $\lambda \in [0, 1]$, and the probability of the
+    second option is $1 - \lambda$. The model outputs $\lambda$. Sigmoid is used since it can't be guaranteed that said
+    output will lie between 0 and 1. During inference, we assume that if $\lambda > 0.5$, then the output is 1, else it's 0.
+    $$L[\phi] = \sum_{i = 1}^{I} -(1 - y_i)\log[1 - \text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]] - y_i\log[\text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]]$$
+
+  - *Multiclass cross-entropy loss* is used in multiclass classification problems. A suitable probability distribution would be a categorical
+    distribution, where the probability of each category is $\lambda_k \in [0, 1], k \in [1, K]$, where $K$ is the number of categories. All
+    probabilities must sum up to 1. The model outputs $K$ values. Since we can't guarantee that the output will match our requirements, Softmax is applied.
+    During inference, we select the class with the highest probability.
+    $$L[\phi] = -\sum_{i = 1}^{I} (f_{yi}[\bold{x_i}, \boldsymbol{\phi}] - \log[\sum_{k = 1}^{K} \exp[f_k[\bold{x_i}, \boldsymbol{\phi}]]])$$
+    Sum the difference between the expected output and the sum of $exp[z_k]$ for every class in the model's output, for each training sample.
+
+  - When we have a multivariate model output, we treat each output and each error as *independent*.
+    Each output gets its own loss function, which can vary. Thus, the model's loss function becomes a sum of all the loss functions for each output.
+
+  - See the chart on *p.70* for more.

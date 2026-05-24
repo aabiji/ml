@@ -2,9 +2,19 @@
 - Implement a classifier neural network from scratch using nothing by numpy.
   Train on something more exciting than MNIST.
 
+- Think of an interesting regression problem where I can produce not only the output
+  but also the model uncertainty.
+
+- Can you predict a person's age given their shopping history?
+  Might be an interesting regression problem, or a classification problem.
+
 - Implement an automatic differentiation engine in C++ to understand how pytorch works
 
 - Implement the NeRF paper: https://arxiv.org/pdf/2003.08934
+
+- Train a model to classify bird species based off of audio clips of bird songs
+
+- Implement a [pose estimation model](https://arxiv.org/html/2504.10350v2)
 
 - Contribute an env to Pufferlib
 
@@ -38,3 +48,10 @@ May 22:
 - Read chapter 4
 - Did the exercises for chapter 4
 - Read part of the section on probability
+
+May 23:
+- Started reading chapter 5
+
+May 24:
+- Finished reading chapter 5
+- Did some textbook problems for chapter 5
