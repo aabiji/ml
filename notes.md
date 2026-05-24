@@ -1,3 +1,7 @@
+# Questions
+- Why ReLU specifically?
+- Are there algorithms for choosing the optimal network architecture?
+
 # Probability
 
 - $Pr(x)$, a [probability density function](https://medium.com/@kavya8a/understanding-probability-density-functions-a-beginners-guide-06c9821ed5c0) (PDF), assigns a non negative probability *density* to every value in the input domain. $\int Pr(x) \,dx = 1$. We are assuming that random variables are continuous.
@@ -78,7 +82,8 @@ $$Pr(x|y) = \frac{Pr(x, y)}{Pr(y)}$$
   - Hidden layers fold the input space (multiple inputs map to one output), which shows how the final output depends on the initial input and the layer outputs
   - Hidden layers clip their inputs, which shows how joints are created in the output space
 
-- *Parameters* are input/hidden layer weights and biases, while *hyperparameters* are hidden unit values.
+- *Parameters* are input/hidden layer weights and biases, while *hyperparameters* are high level settings on how the neural
+  network operates (ex: learning rate, epoch, batch size, number of layers, hidden units per layer, etc).
 
 - The equations that govern a deep neural network are easily vectorized (p.48, *figure 4.6*).
   Let $y$ be the output, $h$ be a network layer, $K$ be the number of layers, exlcuding the input and output layres, $D_j$ be the number of hidden units at layer $j \in [1, K]$, $D_i$ be the number of network inputs, and $D_o$ be the number of network outputs.  The bias matrix has dimension $D_{j + 1} \times 1$, and the weight matrix has dimension $D_{j + 1} \times D_{j}$.
@@ -120,7 +125,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \lo
 - The *sigmoid* function maps a real value $z$ to a range of $[0, 1]$.
 $$\text{sig}[z] = \frac{1}{1 + \text{exp}[-z]}$$
 
-- The *softmax* function maps a vector of real values $\bold{z}$ to a vector of numbers in a range of 0 to 1, where all the numbers sum to 1.
+- The *softmax* function maps a vector of real values (logits) $\bold{z}$ to a vector of probabilities in a range of 0 to 1, where all probabilities sum to 1.
 $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
 
 - **Model training flow (p.60)**:
@@ -144,9 +149,8 @@ $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
     $$L[\phi] = \sum_{i = 1}^{I} -(1 - y_i)\log[1 - \text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]] - y_i\log[\text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]]$$
 
   - *Multiclass cross-entropy loss* is used in multiclass classification problems. A suitable probability distribution would be a categorical
-    distribution, where the probability of each category is $\lambda_k \in [0, 1], k \in [1, K]$, where $K$ is the number of categories. All
-    probabilities must sum up to 1. The model outputs $K$ values. Since we can't guarantee that the output will match our requirements, Softmax is applied.
-    During inference, we select the class with the highest probability.
+    distribution, where the probability of each class is $\lambda_k \in [0, 1], k \in [1, K]$, where $K$ is the number of categories. All
+    probabilities must sum up to 1. Softmax is applied to the function's output to get the categorical distribution.
     $$L[\phi] = -\sum_{i = 1}^{I} (f_{yi}[\bold{x_i}, \boldsymbol{\phi}] - \log[\sum_{k = 1}^{K} \exp[f_k[\bold{x_i}, \boldsymbol{\phi}]]])$$
     Sum the difference between the expected output and the sum of $exp[z_k]$ for every class in the model's output, for each training sample.
 

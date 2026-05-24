@@ -10,6 +10,8 @@
 
 - Implement an automatic differentiation engine in C++ to understand how pytorch works
 
+- Implement an image segmentation model
+
 - Implement the NeRF paper: https://arxiv.org/pdf/2003.08934
 
 - Train a model to classify bird species based off of audio clips of bird songs
@@ -23,6 +25,13 @@
 - Implement and train a speech to text model
 
 - Implement the *Attention is All You Need* paper from scratch
+
+**After Chapter 8 I should know enough to build my first DL project:**
+- A classification model from scratch using nothing but numpy
+- That same model using pytorch
+- That same model Rust using my own basic automatic differentiation library
+https://archive.ics.uci.edu/dataset/53/iris
+https://archive.ics.uci.edu/dataset/146/statlog+landsat+satellite
 
 # Progress
 May 10:
@@ -55,3 +64,4 @@ May 23:
 May 24:
 - Finished reading chapter 5
 - Did some textbook problems for chapter 5
+- Did the jupyter notebooks for chapter 5
