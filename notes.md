@@ -131,6 +131,7 @@ $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
 - **Model training flow (p.60)**:
   1. Pick a good good loss function:
      Choose a suitable probability distribution over your output, defined using parameters $\theta$, such that $\theta = f[\bold{x}, \boldsymbol{\phi}]$.
+     Sub in the probability density function of said distribution into the negative log loss function, simplify and voila, that's the loss function!
   2. Iteratively compute model parameters $\phi$ that minimize loss function.
   3. For inference, use the entire output probability distribution, or choose its maximum value (what's most likely).
 
@@ -158,3 +159,35 @@ $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
     Each output gets its own loss function, which can vary. Thus, the model's loss function becomes a sum of all the loss functions for each output.
 
   - See the chart on *p.70* for more.
+
+- **Common Optimization algorithms**: The goal of an optimization algorithm is to update the model's parameters as to minimize the loss. This process is known as learning, training or fitting.
+  - *Gradient descent*: Compute gradients. Gradients are the partial derivatives of the loss function with respect to the model parameters.
+    Then step backwards. $\alpha$ is the *learning rate*, which is a hyperparameter that controls how quickly the parameters change.
+    At the start of training, the learning rate should be relatively large, (the model should take large steps around the parameter space),
+    and as training draws to a close it should decrease (the model should take small steps around the minimum). *Line search* can be performed
+    to determine which learning rate will make the model learn the fastest.
+    The problem with gradient descent is that we can't predict whether the model will converge on a local minimum or a
+    global minimum, or get stuck in a *saddle point* (flat area of the function) especially when the model function is non-convex.
+    $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi} - \alpha\frac{\partial L}{\partial \boldsymbol{\phi}}$$
+
+  - *Stochastic gradeitn descent*: SGD adds randomness to the stepping process by sampling a random subset of training samples, a *batch*.
+    $N / B$ batches are sampled every *epoch*, where $N$ is the number of training samples and $B$ is the number of training samples in a batch.
+    Because of the batching, SGD is more efficient, and since the loss function for each batch is different, and thus the gradients are different,
+    the model takes a noiser path to convergence. This allows the parameters to potentially step out of a local minima or a saddle point.
+    $$\hat{\boldsymbol{\phi}} = \boldsymbol{\phi} - \alpha \sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_i}]}{\partial \boldsymbol{\phi}}$$
+    Where $B_t$ is the current batch of training samples and $l_i$ is the loss given the chosen training samples.
+
+  - *Nesterov accelerated momentum*: By adding a weighted combination of the previous gradients, and the gradients at the target position, the model can converge on a minimum much faster. Notice that the momentum terms are recursive, and older momenta get weighed less and less. Past gradients are weighed more than the current gradients. By computing the gradient are the target position we also avoid the overshooting that would happen if we used the gradients are the starting position.
+  $$m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t} - \alpha\Beta * m_t]}{\partial \boldsymbol{\phi}}$$
+  $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * m_{t + 1}$$
+
+  - *Adam*: The Adam optimizer takes ideas from several other algorithms and combines them into one. First, Include a weighted history of both the momentum and the squared momentum. Second, amplify the momentum and squared momentum when $t$ is small, doing nothing when $t$ is large. This is because the momentum (which is initialized to 0) will be too small when t is small. Lastly, normalize the gradients so that the parameters step the same distance in each direction.
+  $$
+  m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\\
+  v_{t + 1} = \gamma * v_t + (1 - \gamma) \left(\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\right)^2\tag{1}
+  $$
+  $$
+  \tilde{m_{t + 1}} = \frac{m_{t + 1}}{1 - \Beta^{t + 1}}\\
+  \tilde{v_{t + 1}} = \frac{v_{t + 1}}{1 - \gamma^{t + 1}}\tag{2}
+  $$
+  $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * \frac{\tilde{m_{t + 1}}}{\sqrt{\tilde{v_{t + 1}}} + \epsilon}\tag{3}$$
