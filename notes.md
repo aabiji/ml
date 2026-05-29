@@ -139,9 +139,10 @@ $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
   - *Mean squared error* is used when you assume that the output follows a Gaussian distribution (ex: regression problems).
     When performing inference, the model output is $\hat{\bold{y}} = f[\bold{x}, \boldsymbol{\phi}]$, since the model produces
     the mean of the output Gaussian distribution, which just happens to be the distribution's maximum. In addition to using the mean
-    in the loss function, we could also add variance, which is this case measures how certain the output is (high variance = high uncertainty since
-    the distribution would be spread out more).
-    $$L[\phi] = \sum_{i = 1}^{I} (\bold{y_i} - f[\bold{x_i}, \boldsymbol{\phi}])^2$$
+    in the loss function, we could also add variance, which is this case measures how certain the output is (high variance = high
+    uncertainty since the distribution would be spread out more. Normalization is done to make the loss independent of the number
+    of training samples, and to make comparing loss across datasets easier. $I$ is the number of training samples.
+    $$L[\phi] = \frac{1}{I} \sum_{i = 1}^{I} (\bold{y_i} - f[\bold{x_i}, \boldsymbol{\phi}])^2$$
 
   - *Binary cross-entropy loss* is used in binary classification problems. A suitable probability distribution would be a
     Bernouilli distribution, where the probability of the first option is $\lambda \in [0, 1]$, and the probability of the

@@ -69,3 +69,9 @@ May 24:
 
 May 27:
 - Finished reading chapter 6
+
+May 28:
+- Did the jupyter notebooks for chapter 6
+- Started reading chapter 7
+
+May 29:
