@@ -78,3 +78,4 @@ May 30:
 - Finished reading chapter 7
 
 May 31:
+- Did chapter 7 jupyter notebooks
