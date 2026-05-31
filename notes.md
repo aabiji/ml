@@ -1,8 +1,11 @@
 # Questions
-- Why ReLU specifically?
 - Are there algorithms for choosing the optimal network architecture?
 
-# Probability
+# Interesting
+- Distributed model training.
+- Reducing the memory requirements of a model during training.
+
+# Math
 
 - $Pr(x)$, a [probability density function](https://medium.com/@kavya8a/understanding-probability-density-functions-a-beginners-guide-06c9821ed5c0) (PDF), assigns a non negative probability *density* to every value in the input domain. $\int Pr(x) \,dx = 1$. We are assuming that random variables are continuous.
 
@@ -20,7 +23,20 @@ $$Pr(x|y) = \frac{Pr(x, y)}{Pr(y)}$$
   Ideally, the two distributions $p(x)$ (actual) and $q(x)$ (test) are equal, so the entropy and the cross entropy are equal, and the divergence is zero.
   $$D_{KL}[P || Q] = \int_{-\infty}^{\infty} p(x)\log{\frac{P(x)}{Q(x)}}$$
 
-- The *[Dirac Delta Function](https://math.libretexts.org/Bookshelves/Differential_Equations/Introduction_to_Partial_Differential_Equations_(Herman)/09%3A_Transform_Techniques_in_Physics/9.04%3A_The_Dirac_Delta_Function)*: is +infinity at 0 and 0 everywhere else. The integral of the function over its entire domain is 1. It's useful for modelling impulses.
+- The *[Dirac Delta Function](https://math.libretexts.org/Bookshelves/Differential_Equations/Introduction_to_Partial_Differential_Equations_(Herman)/09%3A_Transform_Techniques_in_Physics/9.04%3A_The_Dirac_Delta_Function)* is +infinity at 0 and 0 everywhere else. The integral of the function over its entire domain is 1. It's useful for modelling impulses.
+
+- A *Jacobian* matrix is a matrix storing the derivative of one vector with respect to another. For example:
+$$ f(x, y) = \begin{bmatrix} x + y \\ xy \end{bmatrix} $$
+$$
+J = \frac{\partial f}{\partial (x, y)}
+  = \begin{bmatrix}
+    \frac{\partial f_1}{\partial x} & \frac{\partial f_1}{\partial y} \\
+    \frac{\partial f_2}{\partial x} & \frac{\partial f_2}{\partial y} \\
+    \end{bmatrix}
+  = \begin{bmatrix} 1 & 1 \\ y & x \end{bmatrix}
+$$
+
+- [Expectation](https://www.probabilitycourse.com/chapter3/3_2_2_expectation.php) is the average value of a random variable.
 
 # Supervised learning
 
@@ -192,3 +208,29 @@ $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
   \tilde{v_{t + 1}} = \frac{v_{t + 1}}{1 - \gamma^{t + 1}}\tag{2}
   $$
   $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * \frac{\tilde{m_{t + 1}}}{\sqrt{\tilde{v_{t + 1}}} + \epsilon}\tag{3}$$
+
+- **Backpropagation** is an algorithm to iteratively apply the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer composes the previous layer. A neural network can also be thought of as a [computation graph](https://www.youtube.com/watch?v=i94OvYb6noo) (DAG), where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers).
+
+  - We do a *forward pass* to compute and cache values of hidden units in each layer, which will be used to compute gradients:
+  $$
+  \begin{align*}
+  f_0       &= \Beta_0 + \Omega_0\bold{x}\\\
+  h_k       &= a[f_{k - 1}] && k \in \{1, 2, 3, ... K\}\\
+  f_{k - 1} &= \Beta_k + \Omega_k \bold{h_k} && k \in \{1, 2, 3, ... K\}
+  \end{align*}
+  $$
+
+  - Then we do a *backward pass* to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows (*p. 106, equation 7.25*):
+  $$\frac{\partial l_i}{\partial \Beta_k} = \frac{\partial l_i}{\partial f_k}$$
+  $$\frac{\partial l_i}{\partial \Omega_k} = \frac{\partial l_i}{\partial f_k} h_k^T$$
+  $$\frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \Omega_k^T \frac{\partial l_i}{\partial f_k}$$
+  $$\frac{\partial l_i}{\partial \Beta_0} = \frac{\partial l_i}{\partial f_0}$$
+  $$\frac{\partial l_i}{\partial \Omega_0} = \frac{\partial l_i}{\partial f_0} \bold{x_i}^T$$
+
+  - $k \in \{K - 1, K - 2, K - 3, ... 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $ReLU^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, we directly compute its diagonal elements, which is just: `activation_derivative_vector = hidden_unit > 0`.
+
+  - This is done for every training sample in the batch, and which we sum each individual gradient together and use that result as the network's gradient!
+
+  - *He initialization*: Weights should be initialized following a normal distribution centered around 0 with a specified variance:
+    $$\sigma^2 = \frac{4}{D_h + D_{h\prime}}$$
+    where $D_h$ is the dimension of the current hidden layer, and $D_h\prime$ is the dimension of the next hidden layer. This is an average of the variance that should be used for the forward pass and the backward pass. This keeps the magnitudes of the hidden units stable. If the weights are too small, the values of the hidden units will decrease exponentially each layer, in the forward or backwards pass (*vanishing gradient problem*). If the weights are too large, the values of the hidden units will increase exponentially each layer, in the forward or backwards pass (*exploding gradient problem*). Defining variance like this ensures that each hidden unit fits in their finite precision data type.

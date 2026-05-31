@@ -26,10 +26,10 @@
 
 - Implement the *Attention is All You Need* paper from scratch
 
-**By Friday (end of Chapter 8) I should know enough to build my first DL project:**
-- A classification model from scratch using nothing but numpy
-- That same model using pytorch
-- That same model Rust using my own basic automatic differentiation library
+**By the end of chapter 8 I should know enough to build my first DL project:**
+- Classification model using pytorch (learn pytorch and implement a working baseline)
+- Same classification model using nothing but numpy
+- Same model using my own basic automatic differentiation library (C++)
 https://archive.ics.uci.edu/dataset/53/iris
 https://archive.ics.uci.edu/dataset/146/statlog+landsat+satellite
 
@@ -74,4 +74,7 @@ May 28:
 - Did the jupyter notebooks for chapter 6
 - Started reading chapter 7
 
-May 29:
+May 30:
+- Finished reading chapter 7
+
+May 31:
