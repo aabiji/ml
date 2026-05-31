@@ -1,11 +1,13 @@
-# Questions
-- Are there algorithms for choosing the optimal network architecture?
+## Questions
+- How is SGD an implicit regularizer for smooth functions?
+- Are there efficient hyperparameter optimization algorithms?
 
-# Interesting
-- Distributed model training.
-- Reducing the memory requirements of a model during training.
+## Interesting
+- Distributed model training
+- Reducing the memory requirements of a model during training
+- Double descent
 
-# Math
+## Math
 
 - $Pr(x)$, a [probability density function](https://medium.com/@kavya8a/understanding-probability-density-functions-a-beginners-guide-06c9821ed5c0) (PDF), assigns a non negative probability *density* to every value in the input domain. $\int Pr(x) \,dx = 1$. We are assuming that random variables are continuous.
 
@@ -36,9 +38,13 @@ J = \frac{\partial f}{\partial (x, y)}
   = \begin{bmatrix} 1 & 1 \\ y & x \end{bmatrix}
 $$
 
-- [Expectation](https://www.probabilitycourse.com/chapter3/3_2_2_expectation.php) is the average value of a random variable.
+- The *sigmoid* function maps a real value $z$ to a range of $[0, 1]$.
+$$\text{sig}[z] = \frac{1}{1 + \text{exp}[-z]}$$
 
-# Supervised learning
+- The *softmax* function maps a vector of real values (logits) $\bold{z}$ to a vector of probabilities in a range of 0 to 1, where all probabilities sum to 1.
+$$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
+
+## Overview
 
 - A model is a mathematical function defined by parameters that map an input to an output.
   Each parameter depends on a corresponding input value.
@@ -65,7 +71,8 @@ $$
   An activation function has to be non linear in order to be effective.
   A common activation function is ReLU (Rectified Linear Unit). If the value is <= 0, the output is 0, else it's the value, which clamps negative numbers.
 
-- The number of hidden units in a shallow network is called the *network capacity (p.29 figure 3.6)*. Sign matters when scaling neural network parameters!
+- The number of hidden units in a shallow network is called the *network capacity (p.29 figure 3.6)*. The theoretical capacity is called the
+  *representational capacity*, while the actual number of functions that the model can approximate is called the *effective capacity*.
   With enough capacity (hidden units), the network can approximate any function at a given resolution (Universal approximation theorem). This is because
   as you add more hidden units, they describe smaller and smaller portions of the function that is more accurately described by a line. (*p. 30, figure 3.5*)
 
@@ -100,6 +107,16 @@ $$
 
 - *Parameters* are input/hidden layer weights and biases, while *hyperparameters* are high level settings on how the neural
   network operates (ex: learning rate, epoch, batch size, number of layers, hidden units per layer, etc).
+    - A common way to optimize hyperparameters is to split the training dataset into three subsets. A training set,
+      a validation set, which is used to choose the hyperparameters that lead to the best model performance, and a
+      test set which is used for a final model performance evaluation.
+
+    - Another common apporoach is called k-fold cross validation. Training samples are split into $N$ random subsets,
+      and for $N$ iterations, training is done with $N - 1$ subsets while hyperparameter validation is done with
+      the remaining subset. The final model performance is evaluated using an average of the $N$ model predictions
+      on a different test dataset.
+
+    - There are many other hyperparameter algorithms.
 
 - The equations that govern a deep neural network are easily vectorized (p.48, *figure 4.6*).
   Let $y$ be the output, $h$ be a network layer, $K$ be the number of layers, exlcuding the input and output layres, $D_j$ be the number of hidden units at layer $j \in [1, K]$, $D_i$ be the number of network inputs, and $D_o$ be the number of network outputs.  The bias matrix has dimension $D_{j + 1} \times 1$, and the weight matrix has dimension $D_{j + 1} \times D_{j}$.
@@ -136,103 +153,116 @@ $$
 $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \log[Pr(y_i|f[\bold{x_i}, \boldsymbol{\phi}])]]$$
 - During inference, our output value is the maximum of the output probability distribution.
 
-- A heteroscedastic model is one where its uncertainty varies with its input. A homoscedastic model is one where its uncertainty is constant.
+- A *heteroscedastic* model is one where its uncertainty varies with its input. A homoscedastic model is one where its uncertainty is constant.
 
-- The *sigmoid* function maps a real value $z$ to a range of $[0, 1]$.
-$$\text{sig}[z] = \frac{1}{1 + \text{exp}[-z]}$$
+- There a three main sources of error when training a model: The extent to which model performance is maintained on the training set is called *generalization*.
+  - *Noise*: The inherent randomness (mislabelling, multiple inputs mapping to the same output, etc) in the training dataset is insurmountable.
 
-- The *softmax* function maps a vector of real values (logits) $\bold{z}$ to a vector of probabilities in a range of 0 to 1, where all probabilities sum to 1.
-$$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
+  - *Bias*: The model might not have enough capacity to fit the data accurately.
+            Increasing the model capacity decreases bias but increases variance, and doesn't necessarily decrease test error.
+            This is known as the *bias-variance tradeoff*. Increasing model capacity unfortunately makes it model noise in the training data
+            better, which is referred to as *overfitting*.
 
-- **Model training flow (p.60)**:
-  1. Pick a good good loss function:
-     Choose a suitable probability distribution over your output, defined using parameters $\theta$, such that $\theta = f[\bold{x}, \boldsymbol{\phi}]$.
-     Sub in the probability density function of said distribution into the negative log loss function, simplify and voila, that's the loss function!
-  2. Iteratively compute model parameters $\phi$ that minimize loss function.
-  3. For inference, use the entire output probability distribution, or choose its maximum value (what's most likely).
+  - *Variance*: The fitted function will vary slightly based off of the training samples (and possibly SGD). Increasing the number of training samples decreases variance.
 
-- **Loss functions**:
-  - *Mean squared error* is used when you assume that the output follows a Gaussian distribution (ex: regression problems).
-    When performing inference, the model output is $\hat{\bold{y}} = f[\bold{x}, \boldsymbol{\phi}]$, since the model produces
-    the mean of the output Gaussian distribution, which just happens to be the distribution's maximum. In addition to using the mean
-    in the loss function, we could also add variance, which is this case measures how certain the output is (high variance = high
-    uncertainty since the distribution would be spread out more. Normalization is done to make the loss independent of the number
-    of training samples, and to make comparing loss across datasets easier. $I$ is the number of training samples.
-    $$L[\phi] = \frac{1}{I} \sum_{i = 1}^{I} (\bold{y_i} - f[\bold{x_i}, \boldsymbol{\phi}])^2$$
+- As model capacity increases, test error should decrease up until a point where variance
+  becomes too large, the model starts to overfit and the test error starts to increase. However, for many datasets,
+  the test error starts decreasing again (*p.130 figure 8.10*) as the model capacity continues to increase. This is
+  referred to as [*double descent*](https://www.lesswrong.com/posts/FRv7ryoqtvSuqBxuT/understanding-deep-double-descent).
+  At the moment we don't fully know why, but there's at least one plausible explanation. As the model capacity increases
+  and the training error approaches zero, the model's fitting function is able to pass through every single training sample.
+  The segments between data points are initially very erratic, leading to a large test error. However, as the model capacity
+  continues to grow, the segments between data points become smoother and smoother, which makes the model fit to new test
+  points better, decreasing test error. This is especially plausible when you consider that in a high dimensional input space,
+  the training samples are extremely sparse (curse of high dimensionality). There's a large number of possible fitting
+  functions passing through all training samples that the model can adopt. The model's tendency to adopt certain families
+  of fitting functions is called *inductive bias*. Any factor that biases a solution to a set of equivalent solutions is
+  called a *regularizer*. The hypothesis is that SGD is an implicit regularizer of smooth functions.
 
-  - *Binary cross-entropy loss* is used in binary classification problems. A suitable probability distribution would be a
-    Bernouilli distribution, where the probability of the first option is $\lambda \in [0, 1]$, and the probability of the
-    second option is $1 - \lambda$. The model outputs $\lambda$. Sigmoid is used since it can't be guaranteed that said
-    output will lie between 0 and 1. During inference, we assume that if $\lambda > 0.5$, then the output is 1, else it's 0.
-    $$L[\phi] = \sum_{i = 1}^{I} -(1 - y_i)\log[1 - \text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]] - y_i\log[\text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]]$$
+**Model capacity of 4???**
 
-  - *Multiclass cross-entropy loss* is used in multiclass classification problems. A suitable probability distribution would be a categorical
-    distribution, where the probability of each class is $\lambda_k \in [0, 1], k \in [1, K]$, where $K$ is the number of categories. All
-    probabilities must sum up to 1. Softmax is applied to the function's output to get the categorical distribution.
-    $$L[\phi] = -\sum_{i = 1}^{I} (f_{yi}[\bold{x_i}, \boldsymbol{\phi}] - \log[\sum_{k = 1}^{K} \exp[f_k[\bold{x_i}, \boldsymbol{\phi}]]])$$
-    Sum the difference between the expected output and the sum of $exp[z_k]$ for every class in the model's output, for each training sample.
+## Loss functions
+- *Mean squared error* is used when you assume that the output follows a Gaussian distribution (ex: regression problems).
+  When performing inference, the model output is $\hat{\bold{y}} = f[\bold{x}, \boldsymbol{\phi}]$, since the model produces
+  the mean of the output Gaussian distribution, which just happens to be the distribution's maximum. In addition to using the mean
+  in the loss function, we could also add variance, which is this case measures how certain the output is (high variance = high
+  uncertainty since the distribution would be spread out more. Normalization is done to make the loss independent of the number
+  of training samples, and to make comparing loss across datasets easier. $I$ is the number of training samples.
+  $$L[\phi] = \frac{1}{I} \sum_{i = 1}^{I} (\bold{y_i} - f[\bold{x_i}, \boldsymbol{\phi}])^2$$
 
-  - When we have a multivariate model output, we treat each output and each error as *independent*.
-    Each output gets its own loss function, which can vary. Thus, the model's loss function becomes a sum of all the loss functions for each output.
+- *Binary cross-entropy loss* is used in binary classification problems. A suitable probability distribution would be a
+  Bernouilli distribution, where the probability of the first option is $\lambda \in [0, 1]$, and the probability of the
+  second option is $1 - \lambda$. The model outputs $\lambda$. Sigmoid is used since it can't be guaranteed that said
+  output will lie between 0 and 1. During inference, we assume that if $\lambda > 0.5$, then the output is 1, else it's 0.
+  $$L[\phi] = \sum_{i = 1}^{I} -(1 - y_i)\log[1 - \text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]] - y_i\log[\text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]]$$
 
-  - See the chart on *p.70* for more.
+- *Multiclass cross-entropy loss* is used in multiclass classification problems. A suitable probability distribution would be a categorical
+  distribution, where the probability of each class is $\lambda_k \in [0, 1], k \in [1, K]$, where $K$ is the number of categories. All
+  probabilities must sum up to 1. Softmax is applied to the function's output to get the categorical distribution.
+  $$L[\phi] = -\sum_{i = 1}^{I} (f_{yi}[\bold{x_i}, \boldsymbol{\phi}] - \log[\sum_{k = 1}^{K} \exp[f_k[\bold{x_i}, \boldsymbol{\phi}]]])$$
+  Sum the difference between the expected output and the sum of $exp[z_k]$ for every class in the model's output, for each training sample.
 
-- **Common Optimization algorithms**: The goal of an optimization algorithm is to update the model's parameters as to minimize the loss. This process is known as learning, training or fitting.
-  - *Gradient descent*: Compute gradients. Gradients are the partial derivatives of the loss function with respect to the model parameters.
-    Then step backwards. $\alpha$ is the *learning rate*, which is a hyperparameter that controls how quickly the parameters change.
-    At the start of training, the learning rate should be relatively large, (the model should take large steps around the parameter space),
-    and as training draws to a close it should decrease (the model should take small steps around the minimum). *Line search* can be performed
-    to determine which learning rate will make the model learn the fastest.
-    The problem with gradient descent is that we can't predict whether the model will converge on a local minimum or a
-    global minimum, or get stuck in a *saddle point* (flat area of the function) especially when the model function is non-convex.
-    $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi} - \alpha\frac{\partial L}{\partial \boldsymbol{\phi}}$$
+- When we have a multivariate model output, we treat each output and each error as *independent*.
+  Each output gets its own loss function, which can vary. Thus, the model's loss function becomes a sum of all the loss functions for each output.
 
-  - *Stochastic gradeitn descent*: SGD adds randomness to the stepping process by sampling a random subset of training samples, a *batch*.
-    $N / B$ batches are sampled every *epoch*, where $N$ is the number of training samples and $B$ is the number of training samples in a batch.
-    Because of the batching, SGD is more efficient, and since the loss function for each batch is different, and thus the gradients are different,
-    the model takes a noiser path to convergence. This allows the parameters to potentially step out of a local minima or a saddle point.
-    $$\hat{\boldsymbol{\phi}} = \boldsymbol{\phi} - \alpha \sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_i}]}{\partial \boldsymbol{\phi}}$$
-    Where $B_t$ is the current batch of training samples and $l_i$ is the loss given the chosen training samples.
+- See the chart on *p.70* for more.
 
-  - *Nesterov accelerated momentum*: By adding a weighted combination of the previous gradients, and the gradients at the target position, the model can converge on a minimum much faster. Notice that the momentum terms are recursive, and older momenta get weighed less and less. Past gradients are weighed more than the current gradients. By computing the gradient are the target position we also avoid the overshooting that would happen if we used the gradients are the starting position.
-  $$m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t} - \alpha\Beta * m_t]}{\partial \boldsymbol{\phi}}$$
-  $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * m_{t + 1}$$
+## Common optimization algorithms
+- The goal of an optimization algorithm is to update the model's parameters as to minimize the loss. This process is known as learning, training or fitting.
 
-  - *Adam*: The Adam optimizer takes ideas from several other algorithms and combines them into one. First, Include a weighted history of both the momentum and the squared momentum. Second, amplify the momentum and squared momentum when $t$ is small, doing nothing when $t$ is large. This is because the momentum (which is initialized to 0) will be too small when t is small. Lastly, normalize the gradients so that the parameters step the same distance in each direction.
-  $$
-  m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\\
-  v_{t + 1} = \gamma * v_t + (1 - \gamma) \left(\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\right)^2\tag{1}
-  $$
-  $$
-  \tilde{m_{t + 1}} = \frac{m_{t + 1}}{1 - \Beta^{t + 1}}\\
-  \tilde{v_{t + 1}} = \frac{v_{t + 1}}{1 - \gamma^{t + 1}}\tag{2}
-  $$
-  $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * \frac{\tilde{m_{t + 1}}}{\sqrt{\tilde{v_{t + 1}}} + \epsilon}\tag{3}$$
+- *Gradient descent*: Compute gradients. Gradients are the partial derivatives of the loss function with respect to the model parameters.
+  Then step backwards. $\alpha$ is the *learning rate*, which is a hyperparameter that controls how quickly the parameters change.
+  At the start of training, the learning rate should be relatively large, (the model should take large steps around the parameter space),
+  and as training draws to a close it should decrease (the model should take small steps around the minimum). *Line search* can be performed
+  to determine which learning rate will make the model learn the fastest.
+  The problem with gradient descent is that we can't predict whether the model will converge on a local minimum or a
+  global minimum, or get stuck in a *saddle point* (flat area of the function) especially when the model function is non-convex.
+  $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi} - \alpha\frac{\partial L}{\partial \boldsymbol{\phi}}$$
 
-- **Backpropagation** is an algorithm to iteratively apply the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer composes the previous layer. A neural network can also be thought of as a [computation graph](https://www.youtube.com/watch?v=i94OvYb6noo) (DAG), where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers).
+- *Stochastic gradeitn descent*: SGD adds randomness to the stepping process by sampling a random subset of training samples, a *batch*.
+  $N / B$ batches are sampled every *epoch*, where $N$ is the number of training samples and $B$ is the number of training samples in a batch.
+  Because of the batching, SGD is more efficient, and since the loss function for each batch is different, and thus the gradients are different,
+  the model takes a noiser path to convergence. This allows the parameters to potentially step out of a local minima or a saddle point.
+  $$\hat{\boldsymbol{\phi}} = \boldsymbol{\phi} - \alpha \sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_i}]}{\partial \boldsymbol{\phi}}$$
+  Where $B_t$ is the current batch of training samples and $l_i$ is the loss given the chosen training samples.
 
-  - We do a *forward pass* to compute and cache values of hidden units in each layer, which will be used to compute gradients:
-  $$
-  \begin{align*}
-  f_0       &= \Beta_0 + \Omega_0\bold{x}\\\
-  h_k       &= a[f_{k - 1}] && k \in \{1, 2, 3, ... K\}\\
-  f_{k - 1} &= \Beta_k + \Omega_k \bold{h_k} && k \in \{1, 2, 3, ... K\}
-  \end{align*}
-  $$
+- *Nesterov accelerated momentum*: By adding a weighted combination of the previous gradients, and the gradients at the target position, the model can converge on a minimum much faster. Notice that the momentum terms are recursive, and older momenta get weighed less and less. Past gradients are weighed more than the current gradients. By computing the gradient are the target position we also avoid the overshooting that would happen if we used the gradients are the starting position.
+$$m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t} - \alpha\Beta * m_t]}{\partial \boldsymbol{\phi}}$$
+$$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * m_{t + 1}$$
 
-  - Then we do a *backward pass* to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows (*p. 106, equation 7.25*):
-  $$\frac{\partial l_i}{\partial \Beta_k} = \frac{\partial l_i}{\partial f_k}$$
-  $$\frac{\partial l_i}{\partial \Omega_k} = \frac{\partial l_i}{\partial f_k} h_k^T$$
-  $$\frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \Omega_k^T \frac{\partial l_i}{\partial f_k}$$
-  $$\frac{\partial l_i}{\partial \Beta_0} = \frac{\partial l_i}{\partial f_0}$$
-  $$\frac{\partial l_i}{\partial \Omega_0} = \frac{\partial l_i}{\partial f_0} \bold{x_i}^T$$
+- *Adam*: The Adam optimizer takes ideas from several other algorithms and combines them into one. First, Include a weighted history of both the momentum and the squared momentum. Second, amplify the momentum and squared momentum when $t$ is small, doing nothing when $t$ is large. This is because the momentum (which is initialized to 0) will be too small when t is small. Lastly, normalize the gradients so that the parameters step the same distance in each direction.
+$$
+m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\\
+v_{t + 1} = \gamma * v_t + (1 - \gamma) \left(\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\right)^2\tag{1}
+$$
+$$
+\tilde{m_{t + 1}} = \frac{m_{t + 1}}{1 - \Beta^{t + 1}}\\
+\tilde{v_{t + 1}} = \frac{v_{t + 1}}{1 - \gamma^{t + 1}}\tag{2}
+$$
+$$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * \frac{\tilde{m_{t + 1}}}{\sqrt{\tilde{v_{t + 1}}} + \epsilon}\tag{3}$$
 
-  - $k \in \{K - 1, K - 2, K - 3, ... 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $ReLU^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, we directly compute its diagonal elements, which is just: `activation_derivative_vector = hidden_unit > 0`.
+## Backpropagation
+- Backpropagation is an algorithm to iteratively apply the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer composes the previous layer. A neural network can also be thought of as a [computation graph](https://www.youtube.com/watch?v=i94OvYb6noo) (DAG), where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers). Gradients are computed for every training sample in a batch, then summed together to get the gradient used in an optimization algorithm.
 
-  - This is done for every training sample in the batch, and which we sum each individual gradient together and use that result as the network's gradient!
+- A *forward pass* is done to compute and cache values of hidden units in each layer, which will be used to compute gradients:
+$$
+\begin{align*}
+f_0       &= \Beta_0 + \Omega_0\bold{x}\\\
+h_k       &= a[f_{k - 1}] && k \in \{1, 2, 3, ... K\}\\
+f_{k - 1} &= \Beta_k + \Omega_k \bold{h_k} && k \in \{1, 2, 3, ... K\}
+\end{align*}
+$$
 
-  - *He initialization*: Weights should be initialized following a normal distribution centered around 0 with a specified variance:
-    $$\sigma^2 = \frac{4}{D_h + D_{h\prime}}$$
-    where $D_h$ is the dimension of the current hidden layer, and $D_h\prime$ is the dimension of the next hidden layer. This is an average of the variance that should be used for the forward pass and the backward pass. If the current and next layer have the same dimension, then the variance can be simplified to
-    $$\sigma^2 = \frac{2}{D_h}$$
-    This keeps the magnitudes of the hidden units stable. If the weights are too small, the values of the hidden units will decrease exponentially each layer, in the forward or backwards pass (*vanishing gradient problem*). If the weights are too large, the values of the hidden units will increase exponentially each layer, in the forward or backwards pass (*exploding gradient problem*). Defining variance like this ensures that each hidden unit fits in their finite precision data type.
+- A *backward pass* is done to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows (*p. 106, equation 7.25*):
+$$\frac{\partial l_i}{\partial \Beta_k} = \frac{\partial l_i}{\partial f_k}$$
+$$\frac{\partial l_i}{\partial \Omega_k} = \frac{\partial l_i}{\partial f_k} h_k^T$$
+$$\frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \Omega_k^T \frac{\partial l_i}{\partial f_k}$$
+$$\frac{\partial l_i}{\partial \Beta_0} = \frac{\partial l_i}{\partial f_0}$$
+$$\frac{\partial l_i}{\partial \Omega_0} = \frac{\partial l_i}{\partial f_0} \bold{x_i}^T$$
+
+- $k \in \{K - 1, K - 2, K - 3, ... 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $ReLU^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, its diagonal elements are directly computed, which is just: `activation_derivative_vector = hidden_unit > 0`.
+
+- [Expectation](https://www.probabilitycourse.com/chapter3/3_2_2_expectation.php) is a weighted sum of all the possible values a random value could be. If the expectation of the magnitude of the weights are smaller than 1, the gradient vanishes, and if the expectation of the magnitude of the weights are larger than 1, the gradient explodes. Both problems can occur in the forward or backward pass. A solution to this is *He initialization*. Initializing the weights to random values taken fro a normal distribution centered around 0, with a variance $(1)$, where $D_h$ is the dimension of the current layer, and $D_h\prime$ is the dimension of the next layer, keeps the gradients stable.
+If the current and next layer have the same dimension, then an average of the variance for the forward pass and backward pass doesn't have to be used $(2)$.
+$$\sigma^2 = \frac{4}{D_h + D_{h\prime}}\tag{1}$$
+$$\sigma^2 = \frac{2}{D_h}\tag{2}$$

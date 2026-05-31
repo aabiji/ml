@@ -28,6 +28,7 @@
 
 **By the end of chapter 8 I should know enough to build my first DL project:**
 - Classification model using pytorch (learn pytorch and implement a working baseline)
+  - Plot loss vs step on training samples and test samples. Will we observe double descent?
 - Same classification model using nothing but numpy
 - Same model using my own basic automatic differentiation library (C++)
 https://archive.ics.uci.edu/dataset/53/iris
@@ -79,3 +80,4 @@ May 30:
 
 May 31:
 - Did chapter 7 jupyter notebooks
+- Read chapter 8
