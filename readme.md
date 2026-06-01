@@ -31,9 +31,6 @@
   - Plot loss vs step on training samples and test samples. Will we observe double descent?
 - Same classification model using nothing but numpy
 - Same model using my own basic automatic differentiation library (C++)
-https://docs.pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html
-https://archive.ics.uci.edu/dataset/53/iris
-https://archive.ics.uci.edu/dataset/146/statlog+landsat+satellite
 
 # Progress
 May 10:

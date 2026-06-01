@@ -179,6 +179,8 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \lo
   of fitting functions is called *inductive bias*. Any factor that biases a solution to a set of equivalent solutions is
   called a *regularizer*. The hypothesis is that SGD is an implicit regularizer of smooth functions.
 
+- Example of *one-hot encoding*: `[0.1, 0.2, 0.3, 0.9, 0.7] -> [0, 0, 0, 1, 0]`
+
 **Model capacity of 4???**
 
 ## Loss functions
