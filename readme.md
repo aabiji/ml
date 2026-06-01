@@ -1,14 +1,10 @@
 # Project ideas
-- Implement a classifier neural network from scratch using nothing by numpy.
-  Train on something more exciting than MNIST.
-
-- Think of an interesting regression problem where I can produce not only the output
-  but also the model uncertainty.
+- Train a multivariate multiclass classification model to predict classify facial expressions.
+  - Estimate model uncertainty
+  - Use a CNN
 
 - Can you predict a person's age given their shopping history?
   Might be an interesting regression problem, or a classification problem.
-
-- Implement an automatic differentiation engine in C++ to understand how pytorch works
 
 - Implement an image segmentation model
 
@@ -24,13 +20,18 @@
 
 - Implement and train a speech to text model
 
+- Learn about gaussian splatting
+
 - Implement the *Attention is All You Need* paper from scratch
+
+- Anything with [this](https://github.com/awesomedata/awesome-public-datasets) dataset
 
 **By the end of chapter 8 I should know enough to build my first DL project:**
 - Classification model using pytorch (learn pytorch and implement a working baseline)
   - Plot loss vs step on training samples and test samples. Will we observe double descent?
 - Same classification model using nothing but numpy
 - Same model using my own basic automatic differentiation library (C++)
+https://docs.pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html
 https://archive.ics.uci.edu/dataset/53/iris
 https://archive.ics.uci.edu/dataset/146/statlog+landsat+satellite
 
@@ -81,3 +82,4 @@ May 30:
 May 31:
 - Did chapter 7 jupyter notebooks
 - Read chapter 8
+- Did 2 chapter 8 jupyter notebooks
