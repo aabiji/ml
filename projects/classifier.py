@@ -8,8 +8,9 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import struct
 
-def load_dataset():
+def load_iris_dataset():
     df = pd.read_csv("../data/IRIS.csv")
     df = pd.get_dummies(df, columns=["species"], dtype=int)
     df = df.sample(frac = 1)
@@ -23,9 +24,38 @@ def load_dataset():
     y_train, y_test = out_values[0:100], out_values[100:]
     return (x_train, y_train), (x_test, y_test)
 
-(x_train, y_train), (x_test, y_test) = load_dataset()
-d_i, d_k, d_o = 4, 10, 3
-epochs, batch_size = 100, 20
+def load_mnist_dataset(train_input_path, train_label_path, test_input_path, test_label_path):
+    inputs, labels = [], []
+
+    for path in [train_input_path, test_input_path]:
+        with open(path, "rb") as file:
+            _, size = struct.unpack(">II", file.read(8))
+            height, width = struct.unpack(">II", file.read(8))
+            buf = np.frombuffer(file.read(), dtype=np.dtype(np.uint8).newbyteorder(">"))
+            buf = np.reshape(buf, (size, height * width))
+            inputs.append(torch.tensor(buf, dtype=torch.float32))
+
+    for path in [train_label_path, test_label_path]:
+        with open(path, "rb") as file:
+            _, size = struct.unpack(">II", file.read(8))
+            buf = np.frombuffer(file.read(), dtype=np.dtype(np.uint8).newbyteorder(">"))
+            labels.append(torch.tensor(buf, dtype=torch.uint8))
+
+    return (inputs[0], labels[0]), (inputs[1], labels[1])
+
+using_iris = False
+(x_train, y_train), (x_test, y_test) = load_iris_dataset() if using_iris else load_mnist_dataset(
+    "../data/mnist/train-images.idx3-ubyte",
+    "../data/mnist/train-labels.idx1-ubyte",
+    "../data/mnist/t10k-images.idx3-ubyte",
+    "../data/mnist/t10k-labels.idx1-ubyte"
+)
+
+d_i, d_k, d_o, epochs = 784, 100, 10, 100
+if using_iris:
+    d_i, d_k, d_o, epochs = 4, 10, 3, 100
+
+batch_size = int(x_train.shape[0] / 10)
 batches_per_epoch = x_train.shape[0] / batch_size
 
 model = torch.nn.Sequential(
@@ -52,7 +82,7 @@ model.apply(init_weights)
 loss_function = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 scheduler = StepLR(optimizer, gamma=0.5, step_size=10)
-data_loader = DataLoader(TensorDataset(x_train, y_train), batch_size=20, shuffle=True)
+data_loader = DataLoader(TensorDataset(x_train, y_train), batch_size=batch_size, shuffle=True)
 accuracies = np.zeros((epochs, 1))
 
 for epoch in range(epochs):
@@ -65,11 +95,19 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()
 
+    num_correct = 0
     prediction = model(x_test)
+    loss = loss_function(prediction, y_test)
     max_indices = torch.argmax(prediction, dim=-1)
-    predicted_class = F.one_hot(max_indices, num_classes=prediction.shape[-1])
-    num_correct = (predicted_class == y_test).all(dim=1).sum()
+
+    if using_iris:
+        predicted_class = F.one_hot(max_indices, num_classes=prediction.shape[-1])
+        num_correct = (predicted_class == y_test).all(dim=1).sum()
+    else:
+        num_correct = (max_indices == y_test).sum()
     accuracies[epoch] = 100 * num_correct / y_test.shape[0]
+
+    print(f"Epoch {epoch + 1}/{epochs} | Loss: {loss:.3f} | Accuracy: {accuracies[epoch][0]:.3f}%")
     scheduler.step()
 
 fig, ax = plt.subplots()
