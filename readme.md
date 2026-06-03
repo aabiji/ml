@@ -26,11 +26,9 @@
 
 - Anything with [this](https://github.com/awesomedata/awesome-public-datasets) dataset
 
-**By the end of chapter 8 I should know enough to build my first DL project:**
-- Classification model using pytorch (learn pytorch and implement a working baseline)
-  - Plot loss vs step on training samples and test samples. Will we observe double descent?
-- Same classification model using nothing but numpy
-- Same model using my own basic automatic differentiation library (C++)
+# Goals
+- Implement the classification model I just built from scratch using numpy to make sure I understand what's going on all together
+- Read the [NeRF](https://arxiv.org/pdf/2003.08934) paper, sign up for google collab and implement it!
 
 # Progress
 May 10:
@@ -80,3 +78,9 @@ May 31:
 - Did chapter 7 jupyter notebooks
 - Read chapter 8
 - Did 2 chapter 8 jupyter notebooks
+
+June 1:
+- Implemented my first model using pytorch (multi class classifier) trained on the Iris and Mnist datasets
+
+June 2:
+- Started working on the same model now from scratch using numpy
