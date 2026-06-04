@@ -12,7 +12,7 @@
 
 - Train a model to classify bird species based off of audio clips of bird songs
 
-- Implement a [pose estimation model](https://arxiv.org/html/2504.10350v2)
+- Implement a [pose estimation model](https://arxiv.org/pdf/2602.15989)
 
 - Contribute an env to Pufferlib
 
@@ -82,5 +82,5 @@ May 31:
 June 1:
 - Implemented my first model using pytorch (multi class classifier) trained on the Iris and Mnist datasets
 
-June 2:
+June 2-3:
 - Started working on the same model now from scratch using numpy

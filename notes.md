@@ -192,17 +192,10 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \lo
   of training samples, and to make comparing loss across datasets easier. $I$ is the number of training samples.
   $$L[\phi] = \frac{1}{I} \sum_{i = 1}^{I} (\bold{y_i} - f[\bold{x_i}, \boldsymbol{\phi}])^2$$
 
-- *Binary cross-entropy loss* is used in binary classification problems. A suitable probability distribution would be a
-  Bernouilli distribution, where the probability of the first option is $\lambda \in [0, 1]$, and the probability of the
-  second option is $1 - \lambda$. The model outputs $\lambda$. Sigmoid is used since it can't be guaranteed that said
-  output will lie between 0 and 1. During inference, we assume that if $\lambda > 0.5$, then the output is 1, else it's 0.
-  $$L[\phi] = \sum_{i = 1}^{I} -(1 - y_i)\log[1 - \text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]] - y_i\log[\text{sig}[f[\bold{x_i}, \boldsymbol{\phi}]]]$$
-
-- *Multiclass cross-entropy loss* is used in multiclass classification problems. A suitable probability distribution would be a categorical
+- *Cross entropy loss* is used in classification problems. A suitable probability distribution would be a categorical
   distribution, where the probability of each class is $\lambda_k \in [0, 1], k \in [1, K]$, where $K$ is the number of categories. All
-  probabilities must sum up to 1. Softmax is applied to the function's output to get the categorical distribution.
-  $$L[\phi] = -\sum_{i = 1}^{I} (f_{yi}[\bold{x_i}, \boldsymbol{\phi}] - \log[\sum_{k = 1}^{K} \exp[f_k[\bold{x_i}, \boldsymbol{\phi}]]])$$
-  Sum the difference between the expected output and the sum of $exp[z_k]$ for every class in the model's output, for each training sample.
+  probabilities must sum up to 1. Softmax is applied to the model's output layer to get a categorical distribution. $y$ is the true class, $\hat{y_i}$ is the predicted class.
+  $$L[\phi] = -\sum_{i = 1}^{I}\sum_{k=1}^{K} y_i log(\hat{y_i})$$
 
 - When we have a multivariate model output, we treat each output and each error as *independent*.
   Each output gets its own loss function, which can vary. Thus, the model's loss function becomes a sum of all the loss functions for each output.
@@ -216,7 +209,8 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \lo
   Then step backwards. $\alpha$ is the *learning rate*, which is a hyperparameter that controls how quickly the parameters change.
   At the start of training, the learning rate should be relatively large, (the model should take large steps around the parameter space),
   and as training draws to a close it should decrease (the model should take small steps around the minimum). *Line search* can be performed
-  to determine which learning rate will make the model learn the fastest.
+  to determine which learning rate will make the model learn the fastest. More commonly, a learning rate scheduler is used. For instance, *StepLR*, where $\gamma$ is a decay multiplier.
+  $$\eta_t = \eta_0 * \gamma^{\frac{\text[epochs]}{\text[step_size]}}$$
   The problem with gradient descent is that we can't predict whether the model will converge on a local minimum or a
   global minimum, or get stuck in a *saddle point* (flat area of the function) especially when the model function is non-convex.
   $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi} - \alpha\frac{\partial L}{\partial \boldsymbol{\phi}}$$
@@ -232,7 +226,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \lo
 $$m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t} - \alpha\Beta * m_t]}{\partial \boldsymbol{\phi}}$$
 $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * m_{t + 1}$$
 
-- *Adam*: The Adam optimizer takes ideas from several other algorithms and combines them into one. First, Include a weighted history of both the momentum and the squared momentum. Second, amplify the momentum and squared momentum when $t$ is small, doing nothing when $t$ is large. This is because the momentum (which is initialized to 0) will be too small when t is small. Lastly, normalize the gradients so that the parameters step the same distance in each direction.
+- *Adam*: The Adam optimizer takes ideas from several other algorithms and combines them into one. First, Include a weighted history of both the momentum and the squared momentum. Second, amplify the momentum and squared momentum when $t$ is small, doing nothing when $t$ is large. This is because the momentum (which is initialized to 0) will be too small when t is small. Lastly, normalize the gradients so that the parameters step the same distance in each direction. Momentum is preserved across batches and epochs.
 $$
 m_{t + 1} = \Beta * m_t + (1 - \Beta)\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\\
 v_{t + 1} = \gamma * v_t + (1 - \gamma) \left(\sum_{i \in B_t} \frac{\partial l_i[\boldsymbol{\phi_t}]}{\partial \boldsymbol{\phi}}\right)^2\tag{1}
@@ -255,12 +249,15 @@ f_{k - 1} &= \Beta_k + \Omega_k \bold{h_k} && k \in \{1, 2, 3, ... K\}
 \end{align*}
 $$
 
-- A *backward pass* is done to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows (*p. 106, equation 7.25*):
+- A *backward pass* is done to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows (*p. 106, equation 7.25*). Note that an outer product is used when computing the derivative of loss with respect to weights. The derivative of the loss with respect to the hidden units is a column vector.
 $$\frac{\partial l_i}{\partial \Beta_k} = \frac{\partial l_i}{\partial f_k}$$
 $$\frac{\partial l_i}{\partial \Omega_k} = \frac{\partial l_i}{\partial f_k} h_k^T$$
 $$\frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \Omega_k^T \frac{\partial l_i}{\partial f_k}$$
 $$\frac{\partial l_i}{\partial \Beta_0} = \frac{\partial l_i}{\partial f_0}$$
 $$\frac{\partial l_i}{\partial \Omega_0} = \frac{\partial l_i}{\partial f_0} \bold{x_i}^T$$
+
+- Gradients are specific to layers, and during SGD or Adam, the gradient used to step is an average of all the gradients for each training sample. Where $B$ is the batch size.
+$$\frac{\partial l_i}{\partial \Omega_i} = \frac{1}{B}\sum_{b = 0}^{B}\frac{\partial l_i}{\partial \Omega_b}$$
 
 - $k \in \{K - 1, K - 2, K - 3, ... 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $ReLU^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, its diagonal elements are directly computed, which is just: `activation_derivative_vector = hidden_unit > 0`.
 
