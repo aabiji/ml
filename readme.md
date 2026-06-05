@@ -25,10 +25,6 @@
 
 - Anything with [this](https://github.com/awesomedata/awesome-public-datasets) dataset
 
-# Goals
-- Implement the classification model I just built from scratch using numpy to make sure I understand what's going on all together
-- Read the [NeRF](https://arxiv.org/pdf/2003.08934) paper, sign up for google collab and implement it!
-
 # Progress
 May 10:
 - Read chapter 1
@@ -81,5 +77,5 @@ May 31:
 June 1:
 - Implemented my first model using pytorch (multi class classifier) trained on the Iris and Mnist datasets
 
-June 2-3:
-- Started working on the same model now from scratch using numpy
+June 2-4:
+- Implemented and trained a classification model on the MNIST dataset from scratch using numpy
