@@ -3,8 +3,7 @@
   - Estimate model uncertainty
   - Use a CNN
 
-- Can you predict a person's age given their shopping history?
-  Might be an interesting regression problem, or a classification problem.
+- Predict next period date from past period dates
 
 - Implement an image segmentation model
 
