@@ -2,6 +2,7 @@ import struct
 import pandas as pd
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 def load_iris():
     df = pd.read_csv("../data/IRIS.csv")
@@ -32,7 +33,9 @@ def load_mnist(train_input_path, train_label_path, test_input_path, test_label_p
         with open(path, "rb") as file:
             _, size = struct.unpack(">II", file.read(8))
             buf = np.frombuffer(file.read(), dtype=np.dtype(np.uint8).newbyteorder(">"))
-            labels.append(torch.tensor(buf, dtype=torch.uint8))
+            tensor = torch.tensor(buf, dtype=torch.uint8)
+            one_hot = F.one_hot(tensor.long(), num_classes=10)
+            labels.append(one_hot)
 
     return inputs[0], labels[0], inputs[1], labels[1]
 

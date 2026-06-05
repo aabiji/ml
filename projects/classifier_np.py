@@ -1,42 +1,54 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import datasets
 
-# TODO: plot loss, fix bugs, test accuracy
+def init_network(input_dim, output_dim, hidden_dim, K):
+    bias   = [np.zeros((hidden_dim, 1))] * K
+    bias[-1] = np.zeros(( output_dim, 1))
 
-# d_i is the # of input dimensions, d_o is the # of output dimensions
-# d_h is the # of hidden dimensions, K is the number of layers (including the input layer)
-# B is the batch_size
-def init_network(d_i, d_o, d_h, K):
-    layers = [np.zeros((d_h, 1))] * (K + 1) # Include the input layer
-    bias   = [np.zeros((d_h, 1))] * K
-    bias[-1] = np.zeros(( d_o, 1))
+    weights = [np.zeros((hidden_dim, hidden_dim))] * K
+    weights[0] = np.zeros((hidden_dim, input_dim))
+    weights[-1] = np.zeros((output_dim, hidden_dim))
 
-    weights = [np.array(0)] * K
-    weights[0] = np.zeros((d_h, d_i))
-    weights[-1] = np.zeros((d_o, d_h))
-
-    # He intialization
+    # He initialize the weights
     rng = np.random.default_rng()
-    for i in range(1, K - 1):
-        variance = 4.0 / (d_i + d_h) if i == 0 else 2.0 / d_h
-        weights[i] = rng.normal(0, np.sqrt(variance), size=(d_h, d_h))
+    for i in range(K):
+        variance = 2.0 / hidden_dim
+        if i == 0:
+            variance = 4.0 / (input_dim + hidden_dim)
+        elif i == K - 1:
+            variance = 4.0 / (hidden_dim + output_dim)
+        weights[i] = rng.normal(0, np.sqrt(variance), size=weights[i].shape)
 
-    return layers, weights, bias
+    return weights, bias
 
-def cross_entropy_loss(softmax_output, batch_label_y):
-    return -(batch_label_y * np.log(softmax_output)).sum()
+def forward(weights, bias, in_sample, depth, hidden_dim, out_shape):
+    # Input layer, hidden layers, output layer
+    layers = [np.zeros((hidden_dim, 1))] * (depth + 1)
+    layers[0] = in_sample
 
-def backpropagation(y_batch, layers, weights, num_layers):
-    dl_dlayers  = [np.array(0)] * num_layers
-    dl_dweights = [np.array(0)] * num_layers
-    dl_dbias    = [np.array(0)] * num_layers
+    # Linear combination and ReLU
+    for i in range(1, depth + 1):
+        layers[i] = bias[i - 1] + weights[i - 1] @ layers[i - 1]
+        layers[i] = layers[i].clip(0.0)
+
+    # Apply softmax to the network output
+    max_logit = np.max(layers[-1], axis=-1)
+    e = np.exp(np.reshape(layers[-1], out_shape) - max_logit)
+    layers[-1] = e / e.sum(axis=1)
+    return layers
+
+def backpropagation(y_batch, layers, weights, depth):
+    dl_dlayers  = [np.array(0)] * depth
+    dl_dweights = [np.array(0)] * depth
+    dl_dbias    = [np.array(0)] * depth
 
     # Derivative of the loss with respect to the output layer
     dl_dlayers[-1] = np.transpose(layers[-1] - y_batch)
 
     # Compute the local gradient, update the global gradient and pass the
     # global gradient to previous layers, from right to left
-    for i in range(num_layers - 1, -1, -1):
+    for i in range(depth - 1, -1, -1):
         dl_dbias[i] = dl_dlayers[i]
         dl_dweights[i] = np.outer(dl_dlayers[i], np.transpose(layers[i]))
         if i > 0:
@@ -45,27 +57,54 @@ def backpropagation(y_batch, layers, weights, num_layers):
 
     return dl_dweights, dl_dbias
 
-def adam(m, v, t, beta1, beta2, alpha, num_layers, params, gradients):
-    for i in range(num_layers):
+def adam(m, v, t, beta1, beta2, alpha, depth, params, gradients):
+    for i in range(depth):
         m[i] = beta1 * m[i] + (1 - beta1) * gradients[i]
-        v[i] = beta2 * v[i] + (1 - beta2) * (gradients[i] ** 2)
+        v[i] = beta2 * v[i] + (1 - beta2) * (np.pow(gradients[i], 2))
 
         amplified_m = m[i] / (1 - np.pow(beta1, t + 1))
         amplified_v = v[i] / (1 - np.pow(beta2, t + 1))
         params[i] -= alpha * amplified_m / (np.sqrt(amplified_v) + 0.001)
 
-x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_iris())
-num_layers, num_batches, num_epochs = 3, 5, 50
+def cross_entropy_loss(softmax_output, batch_label_y):
+    return -(batch_label_y * np.log(softmax_output)).sum()
+
+#x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_iris())
+x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_mnist(
+    "../data/mnist/train-images.idx3-ubyte",
+    "../data/mnist/train-labels.idx1-ubyte",
+    "../data/mnist/t10k-images.idx3-ubyte",
+    "../data/mnist/t10k-labels.idx1-ubyte"
+))
+input_dim, output_dim, hidden_dim, depth = x_train.shape[1], y_train.shape[1], 20, 10
+weights, bias = init_network(input_dim, output_dim, hidden_dim, depth)
+
+num_batches, num_epochs = 20, 100
 batch_size = int(x_train.shape[0] / num_batches)
-layers, weights, bias = init_network(4, 3, 10, num_layers)
+in_shape, out_shape = (x_train.shape[1], 1), (1, y_train.shape[1])
 
 beta1, beta2 = 0.9, 0.999
 initial_learning_rate, gamma, step_size = 0.1, 0.1, 10
 
-m_weights = [np.zeros(weights[i].shape) for i in range(num_layers)]
-v_weights = [np.zeros(weights[i].shape) for i in range(num_layers)]
-m_bias = [np.zeros(bias[i].shape) for i in range(num_layers)]
-v_bias = [np.zeros(bias[i].shape) for i in range(num_layers)]
+# Momentum and squared momentum used in Adam
+m_weights = [np.zeros(weights[i].shape) for i in range(depth)]
+v_weights = [np.zeros(weights[i].shape) for i in range(depth)]
+m_bias = [np.zeros(bias[i].shape) for i in range(depth)]
+v_bias = [np.zeros(bias[i].shape) for i in range(depth)]
+
+plt.ion()
+fig, ax = plt.subplots()
+ax.set_xlabel("Epoch")
+ax.set_xlim(0, num_epochs)
+ax.set_ylabel("Model stats")
+
+accuracy_line, = ax.plot([], [], label="Accuracy", color="blue")
+loss_line, = ax.plot([], [], label="Loss", color="red")
+plt.legend()
+accuracy_line.set_xdata(np.arange(0, num_epochs, 1))
+loss_line.set_xdata(np.arange(0, num_epochs, 1))
+accuracies = [0.0] * num_epochs
+avg_losses = [0.0] * num_epochs
 
 for epoch in range(num_epochs):
     for _ in range(num_batches):
@@ -73,36 +112,53 @@ for epoch in range(num_epochs):
         rng = np.random.default_rng()
         indices = rng.integers(0, x_train.shape[0], batch_size)
 
-        weight_gradient = [np.zeros_like(weights[i]) for i in range(num_layers)]
-        bias_gradient = [np.zeros_like(bias[i]) for i in range(len(bias))]
+        weight_gradient = [np.zeros_like(weights[i]) for i in range(depth)]
+        bias_gradient = [np.zeros_like(bias[i]) for i in range(depth)]
 
+        # Model training...
         for batch_index in indices:
-            layers[0] = np.reshape(x_train[batch_index], (x_train.shape[1], 1))
-            y = np.reshape(y_train[batch_index], (1, y_train.shape[1]))
-
-            # Forward pass (linear combination + relu)
-            for i in range(1, num_layers + 1):
-                layers[i] = bias[i - 1] + weights[i - 1] @ layers[i - 1]
-                layers[i] = layers[i].clip(0.0)
-
-            # Apply softmax to output layer
-            e = np.exp(np.reshape(layers[-1], (1, y_train.shape[1])))
-            softmax_output = e / e.sum(axis=1)
-            layers[-1] = softmax_output
-
-            loss = cross_entropy_loss(layers[-1], y)
-            print(loss)
+            x = np.reshape(x_train[batch_index], in_shape)
+            y = np.reshape(y_train[batch_index], out_shape)
+            layers = forward(weights, bias, x, depth, hidden_dim, out_shape)
 
             # Accumulate gradients for each layer
-            dl_dweights, dl_dbias = backpropagation(y, layers, weights, num_layers)
-            for layer in range(len(dl_dweights)):
+            dl_dweights, dl_dbias = backpropagation(y, layers, weights, depth)
+            for layer in range(depth):
                 weight_gradient[layer] += dl_dweights[layer]
                 bias_gradient[layer] += dl_dbias[layer]
 
+        # Adam optimization for weights and biases
         alpha = initial_learning_rate * np.pow(gamma, int(epoch / step_size))
+        avg_wgradient = [x / float(batch_size) for x in weight_gradient]
+        avg_bgradient = [x / float(batch_size) for x in bias_gradient]
+        adam(m_weights, v_weights, epoch, beta1, beta2, alpha, depth, weights, avg_wgradient)
+        adam(m_bias, v_bias, epoch, beta1, beta2, alpha, depth, bias, avg_bgradient)
 
-        # Adam optimization
-        avg_wgradient = [x / batch_size for x in weight_gradient]
-        avg_bgradient = [x / batch_size for x in bias_gradient]
-        adam(m_weights, v_weights, epoch, beta1, beta2, alpha, num_layers, weights, avg_wgradient)
-        adam(m_bias, v_bias, epoch, beta1, beta2, alpha, num_layers, bias, avg_bgradient)
+    # Run inference on the test sample to measure accuracy
+    num_correct = 0
+    for sample_idx in range(x_test.shape[0]):
+        x_sample = np.reshape(x_test[sample_idx], in_shape)
+        layers = forward(weights, bias, x_sample, depth, hidden_dim, out_shape)
+
+        one_hot_prediction = np.zeros(out_shape[1])
+        one_hot_prediction[np.argmax(layers[-1])] = 1
+        true_output = np.squeeze(y_test[sample_idx])
+
+        num_correct += 1 if (one_hot_prediction == true_output).all() else 0
+        avg_losses[epoch] += cross_entropy_loss(layers[-1], true_output)
+
+    avg_losses[epoch] = avg_losses[epoch] / float(batch_size)
+    accuracies[epoch] = num_correct / x_test.shape[0]
+    print(f"Epoch: {epoch}/{num_epochs} | Accuracy: {accuracies[epoch]} | Loss: {avg_losses[epoch]}")
+    loss_line.set_ydata(avg_losses)
+    accuracy_line.set_ydata(accuracies)
+    ax.relim()
+    ax.autoscale_view()
+    plt.pause(0.01)
+
+plt.annotate(f"{accuracies[-1]:.2f}", xy=(num_epochs - 1, accuracies[-1]),
+             xytext=(10, 0), textcoords="offset points", va="center")
+plt.annotate(f"{avg_losses[-1]:.2f}", xy=(num_epochs - 1, avg_losses[-1]),
+             xytext=(10, 0), textcoords="offset points", va="center")
+plt.ioff()
+plt.show()

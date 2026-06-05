@@ -65,12 +65,9 @@ for epoch in range(epochs):
     prediction = model(x_test)
     loss = loss_function(prediction, y_test)
     max_indices = torch.argmax(prediction, dim=-1)
+    predicted_class = F.one_hot(max_indices, num_classes=prediction.shape[-1])
 
-    if using_iris:
-        predicted_class = F.one_hot(max_indices, num_classes=prediction.shape[-1])
-        num_correct = (predicted_class == y_test).all(dim=1).sum()
-    else:
-        num_correct = (max_indices == y_test).sum()
+    num_correct = (predicted_class == y_test).all(dim=1).sum()
     accuracies[epoch] = 100 * num_correct / y_test.shape[0]
 
     print(f"Epoch {epoch + 1}/{epochs} | Loss: {loss:.3f} | Accuracy: {accuracies[epoch][0]:.3f}%")

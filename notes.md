@@ -85,7 +85,7 @@ $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
   offset for a particular output plus the sum of all the weighed hidden units. (*p.33 equation 3.11 and p.35 equation 3.12*). Input weights and
   hidden unit weights are matrices.
 
-- Basic terminology: (*p.36, figure 3.12*)
+- Basic terminology: (*p.36, figure 3.12*). The number of layers in a network (excluding the input layer) is refered to as *depth*.
 
 - A polytope is an N-dimensional object with flat faces. (ex: a polygon is a 2d polytope, a polyhedron is a 3d polytope).
 
@@ -240,7 +240,7 @@ $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi_t} - \alpha * \frac{\tilde{m_{t + 1
 ## Backpropagation
 - Backpropagation is an algorithm to iteratively apply the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer composes the previous layer. A neural network can also be thought of as a [computation graph](https://www.youtube.com/watch?v=i94OvYb6noo) (DAG), where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers). Gradients are computed for every training sample in a batch, then summed together to get the gradient used in an optimization algorithm.
 
-- A *forward pass* is done to compute and cache values of hidden units in each layer, which will be used to compute gradients:
+- A *forward pass* is done to compute and cache values of hidden units in each layer, which will be used to compute gradients. Note that *hidden units are not conserved across epochs and batches*!
 $$
 \begin{align*}
 f_0       &= \Beta_0 + \Omega_0\bold{x}\\\
