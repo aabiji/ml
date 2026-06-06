@@ -81,8 +81,8 @@ x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_iris())
 input_dim, output_dim, hidden_dim, depth = x_train.shape[1], y_train.shape[1], 10, 3
 weights, bias = init_network(input_dim, output_dim, hidden_dim, depth)
 
-beta1, beta2, learning_rate = 0.9, 0.999, 1e-8
-num_batches, num_epochs = 30, 100
+beta1, beta2, learning_rate = 0.9, 0.999, 0.001
+num_batches, num_epochs = 5, 100
 batch_size = int(x_train.shape[0] / num_batches)
 in_shape, out_shape = (x_train.shape[1], 1), (1, y_train.shape[1])
 
