@@ -34,17 +34,18 @@ def forward(weights, bias, in_sample, depth, hidden_dim, out_shape):
             layers[i] = layers[i].clip(0.0)
 
     # Apply softmax to the network output
-    max_logit = np.max(layers[-1], axis=-1)
-    e = np.exp(np.reshape(layers[-1], out_shape) - max_logit)
+    output = np.reshape(layers[-1], out_shape)
+    max_logit = np.max(output, axis=1)
+    e = np.exp(output - max_logit)
     layers[-1] = e / e.sum(axis=1)
     return layers
 
-def backpropagation(y_batch, layers, weights, depth):
+def backpropagation(expected_output, layers, weights, depth):
     dl_dweights = [np.array(0) for _ in range(depth)]
     dl_dbias    = [np.array(0) for _ in range(depth)]
 
     # Start with the derivative of the loss with respect to the output layer
-    global_grad = (layers[-1] - y_batch).T
+    global_grad = 2.0 * (layers[-1] - expected_output).T
 
     # Compute the local gradient, update the global gradient and pass the
     # global gradient to previous layers, from right to left
@@ -68,21 +69,18 @@ def adam(m, v, t, beta1, beta2, alpha, depth, params, gradients):
         amplified_v = v[i] / (1 - np.pow(beta2, t + 1))
         params[i] -= alpha * amplified_m / (np.sqrt(amplified_v) + 0.001)
 
-def cross_entropy_loss(softmax_output, batch_label_y):
-    return -(batch_label_y * np.log(softmax_output)).sum()
-
-x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_iris())
-#x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_mnist(
-#    "../data/mnist/train-images.idx3-ubyte",
-#    "../data/mnist/train-labels.idx1-ubyte",
-#    "../data/mnist/t10k-images.idx3-ubyte",
-#    "../data/mnist/t10k-labels.idx1-ubyte"
-#))
+#x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_iris())
+x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_mnist(
+    "../data/mnist/train-images.idx3-ubyte",
+    "../data/mnist/train-labels.idx1-ubyte",
+    "../data/mnist/t10k-images.idx3-ubyte",
+    "../data/mnist/t10k-labels.idx1-ubyte"
+))
 input_dim, output_dim, hidden_dim, depth = x_train.shape[1], y_train.shape[1], 10, 3
 weights, bias = init_network(input_dim, output_dim, hidden_dim, depth)
 
 beta1, beta2, learning_rate = 0.9, 0.999, 0.001
-num_batches, num_epochs = 5, 100
+num_batches, num_epochs = 60, 150
 batch_size = int(x_train.shape[0] / num_batches)
 in_shape, out_shape = (x_train.shape[1], 1), (1, y_train.shape[1])
 
@@ -96,15 +94,11 @@ plt.ion()
 fig, ax = plt.subplots()
 ax.set_xlabel("Epoch")
 ax.set_xlim(0, num_epochs)
-ax.set_ylabel("Model stats")
+ax.set_ylabel("Accuracy (%)")
 
-accuracy_line, = ax.plot([], [], label="Accuracy", color="blue")
-loss_line, = ax.plot([], [], label="Loss", color="red")
-plt.legend()
+accuracy_line, = ax.plot([], [], color="blue")
 accuracy_line.set_xdata(np.arange(0, num_epochs, 1))
-loss_line.set_xdata(np.arange(0, num_epochs, 1))
 accuracies = [0.0 for _ in range(num_epochs)]
-avg_losses = [0.0 for _ in range(num_epochs)]
 
 for epoch in range(num_epochs):
     for _ in range(num_batches):
@@ -144,20 +138,15 @@ for epoch in range(num_epochs):
         true_output = np.squeeze(y_test[sample_idx])
 
         num_correct += 1 if (one_hot_prediction == true_output).all() else 0
-        avg_losses[epoch] += cross_entropy_loss(layers[-1], true_output)
 
-    avg_losses[epoch] = avg_losses[epoch] / float(batch_size)
-    accuracies[epoch] = num_correct / x_test.shape[0]
-    print(f"Epoch: {epoch + 1}/{num_epochs} | Accuracy: {accuracies[epoch]} | Loss: {avg_losses[epoch]}")
-    loss_line.set_ydata(avg_losses)
+    accuracies[epoch] = 100.0 * num_correct / x_test.shape[0]
     accuracy_line.set_ydata(accuracies)
     ax.relim()
     ax.autoscale_view()
+    print(f"Epoch: {epoch + 1}/{num_epochs} | Accuracy: {accuracies[epoch]}%")
     plt.pause(0.01)
 
 plt.annotate(f"{accuracies[-1]:.2f}", xy=(num_epochs - 1, accuracies[-1]),
-             xytext=(10, 0), textcoords="offset points", va="center")
-plt.annotate(f"{avg_losses[-1]:.2f}", xy=(num_epochs - 1, avg_losses[-1]),
              xytext=(10, 0), textcoords="offset points", va="center")
 plt.ioff()
 plt.show()

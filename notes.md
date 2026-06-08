@@ -179,7 +179,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \lo
   of fitting functions is called *inductive bias*. Any factor that biases a solution to a set of equivalent solutions is
   called a *regularizer*. The hypothesis is that SGD is an implicit regularizer of smooth functions.
 
-- Example of *one-hot encoding*: `[0.1, 0.2, 0.3, 0.9, 0.7] -> [0, 0, 0, 1, 0]`
+- Example of *one-hot encoding*: $[0.1, 0.2, 0.3, 0.9, 0.7] \rightarrow [0, 0, 0, 1, 0]$
 
 **Model capacity of 4???**
 
@@ -265,3 +265,14 @@ $$\frac{\partial l_i}{\partial \Omega_i} = \frac{1}{B}\sum_{b = 0}^{B}\frac{\par
 If the current and next layer have the same dimension, then an average of the variance for the forward pass and backward pass doesn't have to be used $(2)$.
 $$\sigma^2 = \frac{4}{D_h + D_{h\prime}}\tag{1}$$
 $$\sigma^2 = \frac{2}{D_h}\tag{2}$$
+
+## Regularization
+
+- Regularization refers to any method that decreases the generalization gap between test and training performance. Explicit regularization involves adding an explicit term to the loss function in order to favor certain paraemters. This involves moving away from a maximum likelyhood criterion to a maximum *a posteriori* criterion, where the negative log loss also includes a probability $Pr(\phi)$, a *belief* about the data.
+
+$$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmax}}[Pr(\phi)\prod_{i = 1}^{I} Pr(y_i|x_i, \phi)]$$
+
+- The most common regularization term is the *L2 norm*, which biases smaller parameters. Parameters should be as small as possible (simplest solution) while still minimizing the loss function. L2 norm is applied to weights, and having smaller weights will reduce variance and make the model fit a smoother function, at the cost of reducing data fit. With small values of $\lambda$, test performance improves.
+
+$$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[x_i, y_i] + \lambda \sum_{j}\phi_j^2]$$
+
