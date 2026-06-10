@@ -1,34 +1,35 @@
- A repository of jupyter notebook exercises and notes for Understanding Deep Learning, as well as
- some small projects to apply what I've learnt so far.
+A repository of jupyter notebook exercises and notes for Understanding Deep Learning, as well as some small projects to apply what I've learnt so far.
 
-# Project ideas
-- Implement the Word2Vec paper
-  - [Can we turn music audio into embeddings?](https://arxiv.org/html/2501.01108v1)
-  - [Can we turn images into embeddings?](https://openai.com/index/clip/)
+# Ideas
+- Implement papers:
+  - Word2Vec
+    - [Can we turn music audio into embeddings?](https://arxiv.org/html/2501.01108v1)
+    - [Can we turn images into embeddings?](https://openai.com/index/clip/)
+    - Implement Skip-Gram and Negative Sampling. Learn embeddings, contrastive objectives and representational learning.
 
-- Train a multivariate multiclass classification model to predict classify facial expressions.
-  - Estimate model uncertainty
-  - Use a CNN
+  - Attention Is All You Need
+    - Implement multi-head attention, positional encoding, encoder, decoder.
 
-- Predict next period date from past period dates
+  - CLIP
+    - Learn multimodel learning, contrastive learning, embeddings, zero-shot classification.
 
-- Implement an image segmentation model
+  - Gaussian splatting
+    - [3D Gaussian Splatting for Real-Time Radiance Field Rendering](https://arxiv.org/pdf/2308.04079)
 
-- Implement the NeRF paper: https://arxiv.org/pdf/2003.08934
+  - SegFormer
+    - Learn segmentation and dense prediction.
 
-- Train a model to classify bird species based off of audio clips of bird songs
-  - [Audio classification](https://medium.com/data-science/audio-deep-learning-made-simple-sound-classification-step-by-step-cebc936bbe5)
+  - Tacotron 2
+    - Learn sequence generation, attention, spectrograms and speech synthesis.
 
-- Implement a [pose estimation model](https://arxiv.org/pdf/2602.15989)
 
-- Contribute an env to Pufferlib
+- Small projects:
+  - Facial expression classifier (multivariate, multiclass) also with uncertainty estimation.
 
-- Implement a recommendation system model
+  - Classify which species of bird from audio clips of their songs. Learn spectrograms, audio preprocessing and transfer learning.
 
-- Implement and train a speech to text model
+  - Real time pose estimation with YoloV8
 
-- Learn about gaussian splatting
+  - Add an env to PufferLib
 
-- Implement the *Attention is All You Need* paper from scratch
-
-- Anything with [this](https://github.com/awesomedata/awesome-public-datasets) dataset
+  - Build a model to predict next period date from past period dates

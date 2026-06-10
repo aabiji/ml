@@ -268,11 +268,35 @@ $$\sigma^2 = \frac{2}{D_h}\tag{2}$$
 
 ## Regularization
 
+- *p.155, figure 9.14*
+
 - Regularization refers to any method that decreases the generalization gap between test and training performance. Explicit regularization involves adding an explicit term to the loss function in order to favor certain paraemters. This involves moving away from a maximum likelyhood criterion to a maximum *a posteriori* criterion, where the negative log loss also includes a probability $Pr(\phi)$, a *belief* about the data.
 
 $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmax}}[Pr(\phi)\prod_{i = 1}^{I} Pr(y_i|x_i, \phi)]$$
 
-- The most common regularization term is the *L2 norm*, which biases smaller parameters. Parameters should be as small as possible (simplest solution) while still minimizing the loss function. L2 norm is applied to weights, and having smaller weights will reduce variance and make the model fit a smoother function, at the cost of reducing data fit. With small values of $\lambda$, test performance improves.
+- The most common regularization term is the *L2 norm*, which biases smaller parameters, making the model output change slower. Parameters should be as small as possible (simplest solution) while still minimizing the loss function. L2 norm is applied to weights, and having smaller weights will reduce variance and make the model fit a smoother function, at the cost of reducing data fit. With small values of $\lambda$, test performance improves.
 
 $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[x_i, y_i] + \lambda \sum_{j}\phi_j^2]$$
 
+- SGD generalizes better than gradient descent, and smaller batch sizes result in better performance. This is because SGD implicitly penalizes variance, making the model learn a function that's a tighter, smoother fit to the data.
+
+- Ways to improve model performance:
+  - *Early stopping*: Stop training the model before it fully converges. In practice this means training the model for a large number of epochs to see which number of epochs maximizes performance.
+
+  - *Ensembling*: Run inference on multiple models and average their outputs together to get a more confident answer. This can be done by training identical models with random parameter initalizations, identical models trained on different randomly sampled training data (called *bootstrap aggregating*), or training different model architectures on identical data.
+
+  - *Dropout*: During training, clamp a random subset of hidden units (typically half) to zero. This helps the model reduce its reliance on any given hidden unit and encourages the weights to be smaller
+  so that the output fluctuates less wildly when hidden units are turned off. During inference, all hidden units are active, so weights are multiplied by $1 - \eta$, where $\eta$ is the dropout probability (*weight scaling inference rule*). One can also do *Monte Carlo dropout* instead, where you run inference on the model multiple times with random subsets of the hidden units clipped, and then combine results.
+
+  - *Apply noise* to...
+    - Inputs: Makes the model fit to more variable samples, improving test performance.
+    - Weights: Makes the training converge to a local minima inside of a flat middle region, where changing the weights doesn't affect the output much.
+    - Labels: Makes the model stop chasing absolute certainty. *Label smoothing* refers to changing the loss function to minimize the cross-entropy between the predicted and actual distribution (Where the true label has a probability $1-\rho$ and all the other classes have equal probability. $\rho$ is the proportional of the training labels that are assumed incorrect.).
+
+  - *Transfer learning*: The initial layers of a model act as feature extractors and the final layers act as classification heads. Transfer learning leverages this by freezing the parameters of the pre-trained feature extractor and only training the classification head on the target dataset. *Multi-task learning* is when the model is trained to solve multiple problems concurrently, hoping that the performance on each will improve.
+
+  - *Data Augmentation*: Generate different variations of the input data (add synonyms to text, blur images, filter audio, etc) in order to teach the model to be indifferent to irrelevant data transformations.
+
+  - *Self-supervized learning*: Generate more labelled data using a secondary generative model.
+    - In *generative self-supervized learning*, parts of each data is masked and the secondary task is to predict the missing part.
+    - In *contrastive self-supervized learning*, pairs of examples with commonalities are compared to unrelated pairs.
