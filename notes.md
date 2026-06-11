@@ -211,6 +211,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[-\sum_{i = 1}^{I} \lo
   and as training draws to a close it should decrease (the model should take small steps around the minimum). *Line search* can be performed
   to determine which learning rate will make the model learn the fastest. More commonly, a learning rate scheduler is used. For instance, *StepLR*, where $\gamma$ is a decay multiplier.
   $$\eta_t = \eta_0 * \gamma^{\frac{\text[epochs]}{\text[step_size]}}$$
+  In practice, a good learning rate would be 0.001.
   The problem with gradient descent is that we can't predict whether the model will converge on a local minimum or a
   global minimum, or get stuck in a *saddle point* (flat area of the function) especially when the model function is non-convex.
   $$\boldsymbol{\hat{\phi}} = \boldsymbol{\phi} - \alpha\frac{\partial L}{\partial \boldsymbol{\phi}}$$
@@ -280,7 +281,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[
 
 - SGD generalizes better than gradient descent, and smaller batch sizes result in better performance. This is because SGD implicitly penalizes variance, making the model learn a function that's a tighter, smoother fit to the data.
 
-- Ways to improve model performance:
+- The following are ways to improve model performance. Note that these aren't silver bullets. In theory they should improve test performance, but neural networks are very finicky; the optimal hyperparameters and learning strategies to use should be determined empirically.
   - *Early stopping*: Stop training the model before it fully converges. In practice this means training the model for a large number of epochs to see which number of epochs maximizes performance.
 
   - *Ensembling*: Run inference on multiple models and average their outputs together to get a more confident answer. This can be done by training identical models with random parameter initalizations, identical models trained on different randomly sampled training data (called *bootstrap aggregating*), or training different model architectures on identical data.

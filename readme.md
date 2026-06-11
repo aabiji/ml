@@ -1,5 +1,11 @@
 A repository of jupyter notebook exercises and notes for Understanding Deep Learning, as well as some small projects to apply what I've learnt so far.
 
+TODO:
+- Read chapter 10
+- Implement chapter 10 notebooks
+- 3 projects: Implement a CNN classifer on images, CNN classifier on audio, Word2Vec
+- Implement a pytorch clone to fully understand how it works
+
 # Ideas
 - Implement papers:
   - Word2Vec

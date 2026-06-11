@@ -27,15 +27,16 @@ def load_mnist(train_input_path, train_label_path, test_input_path, test_label_p
             height, width = struct.unpack(">II", file.read(8))
             buf = np.frombuffer(file.read(), dtype=np.dtype(np.uint8).newbyteorder(">"))
             buf = np.reshape(buf, (size, height * width))
-            inputs.append(torch.tensor(buf, dtype=torch.float32))
+            tensor = torch.tensor(buf, dtype=torch.float32)
+            inputs.append(tensor / 255.0)
 
     for path in [train_label_path, test_label_path]:
         with open(path, "rb") as file:
             _, size = struct.unpack(">II", file.read(8))
             buf = np.frombuffer(file.read(), dtype=np.dtype(np.uint8).newbyteorder(">"))
-            tensor = torch.tensor(buf, dtype=torch.uint8)
-            one_hot = F.one_hot(tensor.long(), num_classes=10)
-            labels.append(one_hot)
+            tensor = torch.tensor(buf, dtype=torch.long)
+            one_hot = F.one_hot(tensor, num_classes=10)
+            labels.append(one_hot.float())
 
     return inputs[0], labels[0], inputs[1], labels[1]
 
