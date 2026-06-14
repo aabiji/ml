@@ -1,6 +1,6 @@
 ## Questions
-- How is SGD an implicit regularizer for smooth functions?
 - Are there efficient hyperparameter optimization algorithms?
+- What are graph neural networks?
 
 ## Interesting
 - Distributed model training
@@ -8,7 +8,6 @@
 - Double descent
 
 ## Math
-
 - $Pr(x)$, a [probability density function](https://medium.com/@kavya8a/understanding-probability-density-functions-a-beginners-guide-06c9821ed5c0) (PDF), assigns a non negative probability *density* to every value in the input domain. $\int Pr(x) \,dx = 1$. We are assuming that random variables are continuous.
 
 - A joint probability distribution (ex: $Pr(x, y)$, probability of $x$ and $y$) assigns a probability to every *combination* of values. $\int \int Pr(x, y) \,dxdy = 1$, the sum of the probability distributions of all the variables needs to equal 1.
@@ -45,7 +44,6 @@ $$\text{sig}[z] = \frac{1}{1 + \text{exp}[-z]}$$
 $$\text{softmax}[\bold{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']}$$
 
 ## Overview
-
 - A model is a mathematical function defined by parameters that map an input to an output.
   Each parameter depends on a corresponding input value.
   To "train" the model you define a cost function (*p.19 figure 2.5*) that measures how close the model's output is to the expected output.
@@ -268,7 +266,6 @@ $$\sigma^2 = \frac{4}{D_h + D_{h\prime}}\tag{1}$$
 $$\sigma^2 = \frac{2}{D_h}\tag{2}$$
 
 ## Regularization
-
 - *p.155, figure 9.14*
 
 - Regularization refers to any method that decreases the generalization gap between test and training performance. Explicit regularization involves adding an explicit term to the loss function in order to favor certain paraemters. This involves moving away from a maximum likelyhood criterion to a maximum *a posteriori* criterion, where the negative log loss also includes a probability $Pr(\phi)$, a *belief* about the data.
@@ -291,7 +288,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[
 
   - *Apply noise* to...
     - Inputs: Makes the model fit to more variable samples, improving test performance.
-    - Weights: Makes the training converge to a local minima inside of a flat middle region, where changing the weights doesn't affect the output much.
+    - Weights: Makes the training converge to a local minima inside of a flat middle region, where changing the weights doesn't affect the output much. The model becomes less particular about specific weight values.
     - Labels: Makes the model stop chasing absolute certainty. *Label smoothing* refers to changing the loss function to minimize the cross-entropy between the predicted and actual distribution (Where the true label has a probability $1-\rho$ and all the other classes have equal probability. $\rho$ is the proportional of the training labels that are assumed incorrect.).
 
   - *Transfer learning*: The initial layers of a model act as feature extractors and the final layers act as classification heads. Transfer learning leverages this by freezing the parameters of the pre-trained feature extractor and only training the classification head on the target dataset. *Multi-task learning* is when the model is trained to solve multiple problems concurrently, hoping that the performance on each will improve.
@@ -301,3 +298,32 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[
   - *Self-supervized learning*: Generate more labelled data using a secondary generative model.
     - In *generative self-supervized learning*, parts of each data is masked and the secondary task is to predict the missing part.
     - In *contrastive self-supervized learning*, pairs of examples with commonalities are compared to unrelated pairs.
+
+## Convolutional networks
+- Suppose a transformation $t[x]$ is applied on a function $f[x]$. The function is *invariant* if $f[t[x]] = f[x]$ and is *equivariant* if $f[t[x]] = t[f[x]]$.
+
+- A convolutional network is composed of a series of convolutional layers. Convolutional layers are just a special subset of fully connected layers.
+  A *convolution* is a weighted sum over a set of inputs using fixed parameters called a *convolutional kernel* or a *filter*. To deal with the lack of inputs at the start and at the end, you can either pad the inputs (ex: *zero padding*) or discard the first and last inputs (which would make a *valid convolution*). The *kernel size* is the number of parameters. *Stride* is the step size used when sliding over the input (one for each spatial dimension), *dilation* is the number of zeros intersperced between the inputs plus one (intersperce zeros in the weights). (*p.164 figure 10.3*)
+
+- A convolutional layer is equivariant to translation because of the use of the same kernel over the entire image, and partially invariant to translation because of max pooling.
+
+- A convolutional layer computes its outputs by convolving the input, adding a bias and passing the result through an activation function. Performing a convolution results in a set of outputs called a *channel*.
+  Performing several convolutions results in several channels, increasing the total dimension of the convolutional layer. Channels add depth to the way that input hidden units are sampled. The size of the *receptive field* of a hidden unit is the number of hidden units in the *original input layer* that feed into it. The more hidden layers, the larger the receptive field of subsequent hidden units.
+
+- For a 2D convolution on RGB images:
+  - A $K \times K \times C_i$ kernel is slid over the image, resulting in a $C_{oy} \times C_{ox}$ matrix. $C_i$ is the number of input channels, $C_{ox}$ is the output width, $C_{oy}$ is the output height and $C_o$ is the number of output channels. This corresponds to one channel or feature map. Several convolutions will result in several channels. Hidden layers are 3D, unlike layers in feedforward networks that are always 1D. Each channel's hidden unit is computed as the following, where $\omega_{ij}$ is the kernel weights, $m$ is $\lceil K/2 \rceil$ and $n \in [1, C_o]$.
+  $$h_{nij} = a[\Beta + \sum_{c=1}^{C_i} \sum_{i=1}^{K} \sum_{j = 1}^{K} \omega_{ij} x_{i-m,j-m}]$$
+
+  - Weights are defined as $\boldsymbol{\Omega} \in \real^{C_i \times C_o \times K \times K}$ where $C_i$ is the number of channels in the previous layer, $C_o$ is the number of channels in the current layer and $K$ is the kernel size. Biases are defined as $\Beta \in \real^{C_o}$. (*p. 171 figure 10.9*)
+
+- There are different types of convolutions:
+  - *Strided convolution*: Refers to a convolution with a stride > 1. This *downsamples* the original input size. For example, with a stride of 2, there would be half as many outputs as there are inputs.
+    There are other ways to downsample an image. Using max pooling/mean pooling reduces a 2x2 block of pixels down to the max value/mean value of the block.
+
+  - *Transposed convolution*: Refers to a convolution that uses the transpose of the weight matrix used in a strided convolution. This *upsamples* the original input size.
+    For example, there would be twice as many outputs as there are inputs, and each input would correspond to two outputs. There are other ways to upsample an image.
+    Using max unpooling or bilinear interpolation or duplicating the current value across a 2x2 block.
+
+  - A *1x1 convolution* reduces the number of channels without reducing the number of spatial dimensions.
+    A $1 \times 1 \times C_i \times C_o$ kernel is ran on the input layer, resulting in a $C_{oy} \times C_{ox} \times 1$ result for every output channel $C_o$.
+    This improves computational efficiency and is equivalent to running a fully connected layer on the input channels at every position.
