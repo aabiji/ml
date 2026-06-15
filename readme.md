@@ -6,10 +6,12 @@ Plan:
   - Implement [AlexNet](https://proceedings.neurips.cc/paper_files/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf) from scratch using
     numpy to make sure I really understand CNNs.
       1. Implement the paper verbatim using the AlexNet dataset.
-      2. Change the loss function in order to classify multilabel images of facial expressions using the EMOTIC dataset.
+      2. Might be cool to visualize the convolutional kernels after training is done
+      3. Change the loss function in order to classify multilabel images of facial expressions using the EMOTIC dataset.
   - Implement object detection and segmentation: [You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/pdf/1506.02640)
   - Implement [YamNet](https://arxiv.org/pdf/2002.00476) to classify audio. Apply this model to label the bird species from clips of their songs.
 - Read chapter 11
+- Play around with different cellular automata to play around with the emergent complexity of life
 
 # Ideas
 - Implement papers:

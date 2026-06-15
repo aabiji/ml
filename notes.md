@@ -308,22 +308,24 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[
 - A convolutional layer is equivariant to translation because of the use of the same kernel over the entire image, and partially invariant to translation because of max pooling.
 
 - A convolutional layer computes its outputs by convolving the input, adding a bias and passing the result through an activation function. Performing a convolution results in a set of outputs called a *channel*.
-  Performing several convolutions results in several channels, increasing the total dimension of the convolutional layer. Channels add depth to the way that input hidden units are sampled. The size of the *receptive field* of a hidden unit is the number of hidden units in the *original input layer* that feed into it. The more hidden layers, the larger the receptive field of subsequent hidden units.
+  Performing a convolution with one kernel corresponds to outputting one feature map. Feature maps add depth to the way that input hidden units are sampled. The size of the *receptive field* of a hidden unit is the number of hidden units in the *original input layer* that feed into it. The more hidden layers, the larger the receptive field of subsequent hidden units.
 
 - For a 2D convolution on RGB images:
-  - A $K \times K \times C_i$ kernel is slid over the image, resulting in a $C_{oy} \times C_{ox}$ matrix. $C_i$ is the number of input channels, $C_{ox}$ is the output width, $C_{oy}$ is the output height and $C_o$ is the number of output channels. This corresponds to one channel or feature map. Several convolutions will result in several channels. Hidden layers are 3D, unlike layers in feedforward networks that are always 1D. Each channel's hidden unit is computed as the following, where $\omega_{ij}$ is the kernel weights, $m$ is $\lceil K/2 \rceil$ and $n \in [1, C_o]$.
+  - A $K \times K \times C_i$ kernel is slid over the image, resulting in a $C_{oy} \times C_{ox}$ matrix. $C_i$ is the number of input feature maps, $C_{ox}$ is the output width, $C_{oy}$ is the output height and $C_o$ is the number of output feature maps. This corresponds to one channel or feature map. Several convolutions will result in several feature maps. Hidden layers are 3D, unlike layers in feedforward networks that are always 1D. Each channel's hidden unit is computed as the following, where $\omega_{ij}$ is the kernel weights, $m$ is $\lceil K/2 \rceil$ and $n \in [1, C_o]$.
   $$h_{nij} = a[\Beta + \sum_{c=1}^{C_i} \sum_{i=1}^{K} \sum_{j = 1}^{K} \omega_{ij} x_{i-m,j-m}]$$
 
-  - Weights are defined as $\boldsymbol{\Omega} \in \real^{C_i \times C_o \times K \times K}$ where $C_i$ is the number of channels in the previous layer, $C_o$ is the number of channels in the current layer and $K$ is the kernel size. Biases are defined as $\Beta \in \real^{C_o}$. (*p. 171 figure 10.9*)
+  - Weights are defined as $\boldsymbol{\Omega} \in \real^{C_i \times C_o \times K \times K}$ where $C_i$ is the number of feature maps in the previous layer, $C_o$ is the number of feature maps in the current layer and $K$ is the kernel size. Biases are defined as $\Beta \in \real^{C_o}$. (*p. 171 figure 10.9*)
+
+- Convolutional layer size: $s = [(\text{input size} - \text{filter size} - 2 * \text{padding}) / \text{stride}] + 1$.
 
 - There are different types of convolutions:
   - *Strided convolution*: Refers to a convolution with a stride > 1. This *downsamples* the original input size. For example, with a stride of 2, there would be half as many outputs as there are inputs.
-    There are other ways to downsample an image. Using max pooling/mean pooling reduces a 2x2 block of pixels down to the max value/mean value of the block.
+    There are other ways to downsample an image. Using max pooling/mean pooling reduces a 2x2 block of pixels down to the max value/mean value of the block. A max pooling layer is just another convolutional layer with a stride and kernel size where instead of applying a fixed kernel to a pixel region, you're applying a heuristic.
 
   - *Transposed convolution*: Refers to a convolution that uses the transpose of the weight matrix used in a strided convolution. This *upsamples* the original input size.
     For example, there would be twice as many outputs as there are inputs, and each input would correspond to two outputs. There are other ways to upsample an image.
     Using max unpooling or bilinear interpolation or duplicating the current value across a 2x2 block.
 
-  - A *1x1 convolution* reduces the number of channels without reducing the number of spatial dimensions.
+  - A *1x1 convolution* reduces the number of feature maps without reducing the number of spatial dimensions.
     A $1 \times 1 \times C_i \times C_o$ kernel is ran on the input layer, resulting in a $C_{oy} \times C_{ox} \times 1$ result for every output channel $C_o$.
-    This improves computational efficiency and is equivalent to running a fully connected layer on the input channels at every position.
+    This improves computational efficiency and is equivalent to running a fully connected layer on the input feature channels at every position.
