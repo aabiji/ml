@@ -1,7 +1,5 @@
 ## Challenge: Can we beat the performance of the original model!
 
-# TODO: Understand the section on data augmentation using PCA
-
 Trained on a subset of the ImageNet dataset (1.2 million training samples, 1000 output classes).
 Random 227x227 (not 224x224 like the paper claims) patches of each image, and their corresponding horizontal reflections are extracted and used to augment the training dataset in order to prevent overfitting.
 
@@ -18,6 +16,11 @@ Dropout roughly doubles the number of iterations needed to converge.
 Model was trained using stochastic gradient descent with momentum.
 Weights are initialized using a standard normal distribution with $\sigma = 0.01$.
 Biases for layer 2, 3, 5 is initialized to 1, the biases for the rest of the layers is initialized to 0.
+
+PCA:
+- [Covariance](https://mathworld.wolfram.com/Covariance.html)
+- [Eigenvalues and Eigenvectors](https://lpsa.swarthmore.edu/MtrxVibe/EigMat/MatrixEigen.html)
+- **How to compute the characteristic equation of a matrix?**
 
 Layers:
   - Input layer (227x227x3)
