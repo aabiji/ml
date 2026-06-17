@@ -31,18 +31,18 @@ Layers:
   - Max pooling, output = 27x27x96
 
   - Convolutional, relu, dropout, output = 27x27x256
-    - 256 5x5x96 kernels with a stride of 1 pixel
+    - 256 5x5x96 kernels with a stride of 1 pixel, 2 padding
   - Response normalization
   - Max pooling, output = 13x13x256
 
   - Convolutional, relu, output = 13x13x384
-    - 384 3x3x256 kernels with a stride of 1 pixel
+    - 384 3x3x256 kernels with a stride of 1 pixel, 1 padding
 
   - Convolutional, relu, output = 13x13x384
-    - 384 3x3x384 kernels with a stride of 1 pixel
+    - 384 3x3x384 kernels with a stride of 1 pixel, 1 padding
 
   - Convolutional, relu, output = 13x13x256
-    - 256 3x3x384 kernels with a stride of 1 pixel
+    - 256 3x3x384 kernels with a stride of 1 pixel, 1 padding
 
   - Max pooling, output = 6x6x256
     - Reshape to 9216x1

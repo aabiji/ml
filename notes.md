@@ -1,6 +1,7 @@
 ## Questions
 - Are there efficient hyperparameter optimization algorithms?
 - What are graph neural networks?
+- Are there CNN architectures that don't require fixed input sizes?
 
 ## Interesting
 - Distributed model training
@@ -316,7 +317,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[
 
   - Weights are defined as $\boldsymbol{\Omega} \in \real^{C_i \times C_o \times K \times K}$ where $C_i$ is the number of feature maps in the previous layer, $C_o$ is the number of feature maps in the current layer and $K$ is the kernel size. Biases are defined as $\Beta \in \real^{C_o}$. (*p. 171 figure 10.9*)
 
-- Convolutional layer size: $s = [(\text{input size} - \text{filter size} - 2 * \text{padding}) / \text{stride}] + 1$.
+- The output layer size is $\frac{N + 2P - K}{S} + 1$, where $N$ is the current layer size, $P$ is padding and $K$ is the kernel size and $S$ is the stride.
 
 - There are different types of convolutions:
   - *Strided convolution*: Refers to a convolution with a stride > 1. This *downsamples* the original input size. For example, with a stride of 2, there would be half as many outputs as there are inputs.
