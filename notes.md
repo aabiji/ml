@@ -315,7 +315,7 @@ $$\boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}[\sum_{i = 1}^{I} l_i[
   - A $K \times K \times C_i$ kernel is slid over the image, resulting in a $C_{oy} \times C_{ox}$ matrix. $C_i$ is the number of input feature maps, $C_{ox}$ is the output width, $C_{oy}$ is the output height and $C_o$ is the number of output feature maps. This corresponds to one channel or feature map. Several convolutions will result in several feature maps. Hidden layers are 3D, unlike layers in feedforward networks that are always 1D. Each channel's hidden unit is computed as the following, where $\omega_{ij}$ is the kernel weights, $m$ is $\lceil K/2 \rceil$ and $n \in [1, C_o]$.
   $$h_{nij} = a[\Beta + \sum_{c=1}^{C_i} \sum_{i=1}^{K} \sum_{j = 1}^{K} \omega_{ij} x_{i-m,j-m}]$$
 
-  - Weights are defined as $\boldsymbol{\Omega} \in \real^{C_i \times C_o \times K \times K}$ where $C_i$ is the number of feature maps in the previous layer, $C_o$ is the number of feature maps in the current layer and $K$ is the kernel size. Biases are defined as $\Beta \in \real^{C_o}$. (*p. 171 figure 10.9*)
+  - Weights can be defined as $\boldsymbol{\Omega} \in \real^{C_i \times C_o \times K \times K}$ where $C_i$ is the number of feature maps in the previous layer, $C_o$ is the number of feature maps in the current layer and $K$ is the kernel size. Biases can be defined as $\Beta \in \real^{C_o}$. (*p. 171 figure 10.9*)
 
 - The output layer size is $\frac{N + 2P - K}{S} + 1$, where $N$ is the current layer size, $P$ is padding and $K$ is the kernel size and $S$ is the stride.
 
