@@ -256,7 +256,7 @@ $$\frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \Omega_k^T \f
 $$\frac{\partial l_i}{\partial \Beta_0} = \frac{\partial l_i}{\partial f_0}$$
 $$\frac{\partial l_i}{\partial \Omega_0} = \frac{\partial l_i}{\partial f_0} \bold{x_i}^T$$
 
-- Gradients are specific to layers, and during SGD or Adam, the gradient used to step is an average of all the gradients for each training sample. Where $B$ is the batch size.
+- Gradients are layer specific, and during SGD or Adam, the gradient used to step is an average of all the gradients for each training sample. Where $B$ is the batch size.
 $$\frac{\partial l_i}{\partial \Omega_i} = \frac{1}{B}\sum_{b = 0}^{B}\frac{\partial l_i}{\partial \Omega_b}$$
 
 - $k \in \{K - 1, K - 2, K - 3, ... 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $ReLU^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, its diagonal elements are directly computed, which is just: `activation_derivative_vector = hidden_unit > 0`.
@@ -265,6 +265,28 @@ $$\frac{\partial l_i}{\partial \Omega_i} = \frac{1}{B}\sum_{b = 0}^{B}\frac{\par
 If the current and next layer have the same dimension, then an average of the variance for the forward pass and backward pass doesn't have to be used $(2)$.
 $$\sigma^2 = \frac{4}{D_h + D_{h\prime}}\tag{1}$$
 $$\sigma^2 = \frac{2}{D_h}\tag{2}$$
+
+- Backpropagation is different for [convolutional layers](https://deeplearning.cs.cmu.edu/F21/document/recitation/Recitation5/CNN_Backprop_Recitation_5_F21.pdf). We need to compute the derivative of the loss with respect to the kernel $F$ $(1)$ and the derivative of the loss with respect to the current layer $X$ $(2)$, using the previous layer $O$. $\frac{\partial L}{\partial O}$ is the incoming gradient from later layers (global gradient). If only a single channel is used, then think of each value and derivative as a matrix.
+
+  $(1)$ The convolution is done without any padding on either matrix, where $\frac{\partial L}{\partial O}$ is dilated by $\text{stride}$.
+
+  $(2)$ To rotate by 180 degrees, $F$ is flipped vertically then horizontally. The convolution is done with $\frac{\partial L}{\partial O}$ dilated and zero-padded by $\text{stride}$.
+
+$$
+\begin{align*}
+\frac{\partial L}{\partial F}
+&= \frac{\partial L}{\partial O} \frac{\partial O}{\partial F}\\
+&= \sum_{i = 1}^{N} \sum_{k = 1}^{M} \frac{\partial L}{\partial O_k} \frac{\partial O_k}{\partial F_i}\\
+&= \text{convolution}[X, \frac{\partial L}{\partial O}]
+\tag{1}
+\\\\
+\frac{\partial L}{\partial X}
+&= \frac{\partial L}{\partial O} \frac{\partial O}{\partial X}\\
+&= \sum_{i = 1}^{N} \sum_{k = 1}^{M} \frac{\partial L}{\partial O_k} \frac{\partial O_k}{\partial X_i}\\
+&= \text{convolution}[\frac{\partial L}{\partial O}, \text{rot180}[F]]
+\tag{2}
+\end{align*}
+$$
 
 ## Regularization
 - *p.155, figure 9.14*
