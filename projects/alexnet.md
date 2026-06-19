@@ -26,7 +26,7 @@ Layers:
   - Input layer (227x227x3)
 
   - Convolutional, relu, dropout, output = 55x55x96
-    - 96 11x11x3 kernels with a stride of 4 pixels
+    - 96 11x11x3 kernels with a stride of 4 pixels, 0 padding
   - Response normalization
   - Max pooling, output = 27x27x96
 
