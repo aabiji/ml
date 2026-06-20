@@ -42,3 +42,9 @@ Plan:
   - Add an env to PufferLib
 
   - Build a model to predict next period date from past period dates
+
+Setup:
+```bash
+sudo apt install okular latexmk
+# Make sure qpdfview has autoreload ticked!
+```
