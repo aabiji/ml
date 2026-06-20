@@ -35,9 +35,6 @@ def load_dataset(path, classes, img_dim, batch_size):
 
 
 def expand(data, pad, dilation):
-  # Pad - Add surrounding zeroes
-  pad_width = ((0, 0), (pad, pad), (pad, pad))
-  data = np.pad(data, pad_width=pad_width, mode="constant", constant_values=0)
   output = data
 
   # Dilate - Insert a number of zeroes between elements in the array in the specific axes
@@ -56,6 +53,11 @@ def expand(data, pad, dilation):
     output = np.zeros(new_shape, dtype=data.dtype)
     output[tuple(slices)] = data
 
+  # Pad - Add surrounding zeroes
+  if pad > 0:
+    pad_width = ((0, 0), (pad, pad), (pad, pad))
+    output = np.pad(output, pad_width=pad_width, mode="constant", constant_values=0)
+
   return output
 
 
@@ -69,41 +71,30 @@ def cnn_layer_shape(layer_shape, kernel_shape, stride, pad):
   )
 
 
-def convolution(in_layer, kernel, stride, pad, dilation, input_expanded=True):
-  out_layer = np.zeros(cnn_layer_shape(in_layer.shape, kernel.shape, stride, pad))
-  out_channels, out_height, out_width = out_layer.shape
+def convolution(
+  in_layer, kernel, stride,
+  input_pad, input_dilation, kernel_pad, kernel_dilation
+):
+  s = cnn_layer_shape(in_layer.shape, kernel.shape, stride, input_pad)
+  out_channels, out_height, out_width = s
+  out_layer = np.zeros(s)
 
   kernel_size = kernel.shape[2]
   half = int(kernel_size / 2)
-  inset = pad if pad > 0 else half
+  inset = input_pad if input_pad > 0 else half
 
-  if input_expanded:
-    in_layer = expand(in_layer, pad, dilation)
-  else:
-    kernel = expand(kernel, pad, dilation)
+  print(in_layer.shape, kernel.shape)
+  in_layer = expand(in_layer, input_pad, input_dilation)
+  kernel = expand(kernel, kernel_pad, kernel_dilation)
+  print(in_layer.shape, kernel.shape)
+  print()
 
   for k in range(out_channels):
     for y in range(0, out_height, stride):
       for x in range(0, out_width, stride):
         a, b = inset + y - half, inset + y + half + 1
         c, d = inset + x - half, inset + x + half + 1
-        #print(in_layer[:, a:b, c:d].shape, kernel[k].shape, in_layer.shape)
         out_layer[k, y, x] = np.einsum("ijk,ijk->jk", in_layer[:, a:b, c:d], kernel[k]).sum()
-
-  return out_layer
-
-
-def maxpool(in_layer, kernel_size, stride):
-  kernel_shape = (in_layer.shape[0], in_layer.shape[0], kernel_size, kernel_size)
-  out_layer = np.zeros(cnn_layer_shape(in_layer.shape, kernel_shape, stride, 0))
-  out_channels, out_height, out_width = out_layer.shape
-
-  for k in range(out_channels):
-    for y in range(0, out_height):
-      for x in range(0, out_width):
-        a, b = y * stride, y * stride + kernel_size + 1
-        c, d = x * stride, x * stride + kernel_size + 1
-        out_layer[k, y, x] = np.max(in_layer[k, a:b, c:d])
 
   return out_layer
 
@@ -143,37 +134,75 @@ class Linear:
 
 
 class Convolutional:
-  def __init__(self, weights_shape, stride, padding, maxpool_dims=None):
+  def __init__(self, weights_shape, stride, padding):
     # Note that each channel gets its own bias
     self.kernel, self.biases = initialize_params(weights_shape)
     self.stride = stride
     self.padding = padding
-    self.maxpool_dims = maxpool_dims
     self.data = None
     self.kernel_gradient = None
     self.bias_gradient = None
 
   def forward(self, prev_layer):
-    output = convolution(prev_layer, self.kernel, self.stride, self.padding, 1)
+    output = convolution(prev_layer, self.kernel, self.stride, self.padding, 1, 0, 0)
     self.data = self.biases.squeeze()[:, None, None] + output
-
-    if self.maxpool_dims is not None:
-      pooled = maxpool(self.data, 3, 2)
-      self.data = np.reshape(pooled, self.maxpool_dims)
-
     self.data = self.data.clip(0.0)
 
   def backward(self, gradient):
-    print(gradient.shape)
-
-    # TODO: back propagatoin on the maxpool layer + its preceding layer
-
-    # TODO: apply maxpool derivative
+    # TODO: apply relu derivative
     self.bias_gradient = gradient
-    self.kernel_gradient = convolution(self.data, gradient, 1, 0, self.stride, False)
+    self.kernel_gradient = convolution(self.data, self.kernel, 1, self.padding, 1, 0, self.stride)
 
     rotated = np.rot90(self.kernel, k=2, axes=(0, 1))
-    return convolution(gradient, rotated, 1, self.stride, self.stride)
+    grad_padding = self.kernel.shape[-1] - 1 - self.padding
+    new_grad = convolution(gradient, rotated, 1, grad_padding, self.stride, 0, 1)
+    return new_grad
+
+
+class Maxpool:
+  def __init__(self, kernel_size, stride, flatten):
+    self.data = None
+    self.original_shape = None # Before the maxpool
+    self.max_coordinates = []
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.flatten = flatten
+
+  def forward(self, prev_layer):
+    # Max pooling to reduce layer dimensions
+    s = (prev_layer.shape[0], prev_layer.shape[0], self.kernel_size, self.kernel_size)
+    self.data = np.zeros(cnn_layer_shape(prev_layer.shape, s, self.stride, 0))
+    self.original_shape = prev_layer.shape
+    channels, height, width = self.data.shape
+
+    for k in range(channels):
+      for y in range(0, height):
+        for x in range(0, width):
+          a, b = y * self.stride, y * self.stride + self.kernel_size + 1
+          c, d = x * self.stride, x * self.stride + self.kernel_size + 1
+          region = prev_layer[k, a:b, c:d]
+          self.data[k, y, x] = np.max(region)
+
+          region_max_idx = np.argmax(region)
+          region_y, region_x = np.unravel_index(region_max_idx, region.shape)
+          self.max_coordinates.append((c + region_x, a + region_y))
+
+    if self.flatten:
+      self.data = self.data.flatten()[:, None]
+
+    return self.data
+
+  def backward(self, gradient):
+    # The derivative of maxpool is max unpooling of the gradient
+    gradient = gradient.flatten()
+    new_grad = np.zeros(self.original_shape)
+
+    for i, val in enumerate(gradient):
+      channel = np.unravel_index(i, self.original_shape)[0]
+      y, x = self.max_coordinates[i]
+      new_grad[channel, y, x] = val
+
+    return new_grad
 
 
 classes = {
@@ -184,11 +213,14 @@ classes = {
 imgs, labels = load_dataset("../data/fane/fane_data/", classes, (227, 227), 9)
 
 layers = [
-  Convolutional((96,  3, 11, 11), 4, 0, maxpool_dims=(96,  27, 27)),
-  Convolutional((256, 96, 5,  5), 1, 2, maxpool_dims=(256, 13, 13)),
+  Convolutional((96,  3, 11, 11), 4, 0),
+  Maxpool(3, 2, False),
+  Convolutional((256, 96, 5,  5), 1, 2),
+  Maxpool(3, 2, False),
   Convolutional((384, 256, 3, 3), 1, 1),
   Convolutional((384, 384, 3, 3), 1, 1),
-  Convolutional((256, 384, 3, 3), 1, 1, maxpool_dims=(9216, 1)),
+  Convolutional((256, 384, 3, 3), 1, 1),
+  Maxpool(3, 2, True),
   Linear((4096, 9216)),
   Linear((4096, 4096)),
   Linear((4096, 4096)),
