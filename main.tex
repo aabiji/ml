@@ -94,6 +94,33 @@ The following are a few common loss functions.
 \item When the model's output is multivariate, each output and each error are treated as independent. The model's loss function becomes a sum of all the loss functions for each output. See the chart on p. 70 of textbook for more.
 \end{itemize}
 
+\section{Backpropagation}
+Backpropagation is an algorithm that iteratively applies the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer is a function that composes the previous layer. A neural network can also be thought of as a \href{https://www.youtube.com/watch?v=i94OvYb6noo}{directed acyclic graph}, where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers). Gradients are computed for every training sample in a batch, then summed together to get the gradient used in an optimization algorithm. The loss function gradient is used as the initial gradient.
+
+A forward pass is done to compute and cache values of hidden units in each layer, which will be used to compute gradients. Note that hidden units are not conserved across epochs and batche.
+\begin{align*}
+f_0       &= \boldsymbol{\beta_0} + \boldsymbol{\Omega_0}\mathbf{x}\\
+h_k       &= a[f_{k - 1}] && k \in \{1, 2, 3, \dots, K\}\\
+f_{k - 1} &= \boldsymbol{\beta_k} + \boldsymbol{\Omega_k} \mathbf{h_k} && k \in \{1, 2, 3, \dots, K\}
+\end{align*}
+
+A backward pass is done to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows. Note that an outer product is used when computing the derivative of loss with respect to weights. The derivative of the loss with respect to the hidden units is a column vector. Gradients are layer specific, and during the optimization algorithm, the gradient used to step is an average of all the gradients for each training sample in the batch.
+\[ \frac{\partial l_i}{\partial \boldsymbol{\beta_k}} = \frac{\partial l_i}{\partial f_k} \]
+\[ \frac{\partial l_i}{\partial \boldsymbol{\Omega_k}} = \frac{\partial l_i}{\partial f_k} h_k^T \]
+\[ \frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \boldsymbol{\Omega_k}^T \frac{\partial l_i}{\partial f_k} \]
+
+$k \in \{K - 1, K - 2, K - 3, \dots, 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $\text{ReLU}^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, its diagonal elements are directly computed, which is just: \texttt{hidden\_unit > 0}.
+
+Backpropagation is different for \href{https://deeplearning.cs.cmu.edu/F21/document/recitation/Recitation5/CNN_Backprop_Recitation_5_F21.pdf}{convolutional layers}. We need to compute the derivative of the loss with respect to the kernel F (1) and the derivative of the loss with respect to the previous layer X (2).
+(1) X is padded by the current layer's padding and the gradient is dilated by the current layer's stride.
+(2) To rotate by 180 degrees, F is flipped vertically then horizontally. The gradient dilated by the current layer's stride and zero-padded by the current layer's kernel size minus one. After the convolution, the gradient should have its padding stripped.
+
+\begin{align*}
+\frac{\partial L}{\partial F} &= \text{convolution}\left[X, \frac{\partial l_i}{\partial f_k}\right] \tag{1} \\\\
+\frac{\partial L}{\partial X} &= \text{convolution}\left[\frac{\partial l_i}{\partial f_k}, \text{rot180}[F]\right] \tag{2}\\
+\frac{\partial L}{\partial B_k} &= \sum_{y=1}^{H} \sum_{x=1}^{W} \frac{\partial l_i}{\partial f_{k,y,x}} \tag{3}
+\end{align*}
+
 \section{Optimization algorithms}
 The goal of an optimization algorithm is to update the model's parameters as to minimize the loss. This process is known as learning, training or fitting.
 
@@ -119,32 +146,6 @@ v_{t + 1} &= \gamma v_t + (1 - \gamma)\left(\sum_{i \in B_t} \frac{\partial l_i(
 \boldsymbol{\hat{\phi}} &= \boldsymbol{\phi}_t - \alpha \frac{\tilde{m}_{t + 1}}{\sqrt{\tilde{v}_{t + 1}} + \epsilon} \tag{3}
 \end{align*}
 \end{itemize}
-
-\section{Backpropagation}
-Backpropagation is an algorithm that iteratively applies the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer is a function that composes the previous layer. A neural network can also be thought of as a \href{https://www.youtube.com/watch?v=i94OvYb6noo}{directed acyclic graph}, where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers). Gradients are computed for every training sample in a batch, then summed together to get the gradient used in an optimization algorithm.
-
-A forward pass is done to compute and cache values of hidden units in each layer, which will be used to compute gradients. Note that hidden units are not conserved across epochs and batche.
-\begin{align*}
-f_0       &= \boldsymbol{\beta_0} + \boldsymbol{\Omega_0}\mathbf{x}\\
-h_k       &= a[f_{k - 1}] && k \in \{1, 2, 3, \dots, K\}\\
-f_{k - 1} &= \boldsymbol{\beta_k} + \boldsymbol{\Omega_k} \mathbf{h_k} && k \in \{1, 2, 3, \dots, K\}
-\end{align*}
-
-A backward pass is done to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows. Note that an outer product is used when computing the derivative of loss with respect to weights. The derivative of the loss with respect to the hidden units is a column vector. Gradients are layer specific, and during the optimization algorithm, the gradient used to step is an average of all the gradients for each training sample in the batch.
-\[ \frac{\partial l_i}{\partial \boldsymbol{\beta_k}} = \frac{\partial l_i}{\partial f_k} \]
-\[ \frac{\partial l_i}{\partial \boldsymbol{\Omega_k}} = \frac{\partial l_i}{\partial f_k} h_k^T \]
-\[ \frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \boldsymbol{\Omega_k}^T \frac{\partial l_i}{\partial f_k} \]
-
-$k \in \{K - 1, K - 2, K - 3, \dots, 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $\text{ReLU}^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, its diagonal elements are directly computed, which is just: \texttt{hidden\_unit > 0}.
-
-Backpropagation is different for \href{https://deeplearning.cs.cmu.edu/F21/document/recitation/Recitation5/CNN_Backprop_Recitation_5_F21.pdf}{convolutional layers}. We need to compute the derivative of the loss with respect to the kernel F (1) and the derivative of the loss with respect to the previous layer X (2).
-(1) X is padded by the current layer's padding and the gradient is dilated by the current layer's stride.
-(2) To rotate by 180 degrees, F is flipped vertically then horizontally. The gradient dilated by the current layer's stride and zero-padded by the current layer's kernel size minus one.
-
-\begin{align*}
-\frac{\partial L}{\partial F} &= \text{convolution}\left[X, \frac{\partial l_i}{\partial f_k}\right] \tag{1} \\\\
-\frac{\partial L}{\partial X} &= \text{convolution}\left[\frac{\partial l_i}{\partial f_k}, \text{rot180}[F]\right] \tag{2}
-\end{align*}
 
 \section{Regularization}
 See p.155, figure 9.14
