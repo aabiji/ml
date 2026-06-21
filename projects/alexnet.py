@@ -1,6 +1,7 @@
+import numpy as np
 from PIL import Image, ImageOps
 from pathlib import Path
-import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 
 np.set_printoptions(precision=4)
 
@@ -33,7 +34,6 @@ def load_dataset(path, classes, img_dim, batch_size):
 
   return imgs, labels
 
-
 def expand(data, pad, dilation):
   output = data
 
@@ -53,13 +53,13 @@ def expand(data, pad, dilation):
     output = np.zeros(new_shape, dtype=data.dtype)
     output[tuple(slices)] = data
 
-  # Pad - Add surrounding zeroes
+  # Pad - Only pad the last two dimensions
   if pad > 0:
-    pad_width = ((0, 0), (pad, pad), (pad, pad))
-    output = np.pad(output, pad_width=pad_width, mode="constant", constant_values=0)
+    dims = [(0, 0) for _ in range(len(data.shape))]
+    dims[-1] = dims[-2] = (pad, pad)
+    output = np.pad(output, pad_width=tuple(dims), mode="constant", constant_values=0)
 
   return output
-
 
 # layer_shape   = (num_channels, height, width)
 # weights_shape = (output channels, input channels, size, size)
@@ -70,37 +70,39 @@ def cnn_layer_shape(layer_shape, kernel_shape, stride, pad):
     int((layer_shape[2] + 2 * pad - kernel_shape[2]) / stride) + 1
   )
 
+def convolution(layer, kernel, stride, layer_pad, layer_dilation, kernel_pad, kernel_dilation):
+  # layer shape  = (input channels, height, width)
+  layer = expand(layer, layer_pad, layer_dilation)
 
-def convolution(
-  in_layer, kernel, stride,
-  input_pad, input_dilation, kernel_pad, kernel_dilation
-):
-  s = cnn_layer_shape(in_layer.shape, kernel.shape, stride, input_pad)
-  out_channels, out_height, out_width = s
-  out_layer = np.zeros(s)
-
-  kernel_size = kernel.shape[2]
-  half = int(kernel_size / 2)
-  inset = input_pad if input_pad > 0 else half
-
-  print(in_layer.shape, kernel.shape)
-  in_layer = expand(in_layer, input_pad, input_dilation)
+  #   foward pass: (output channels, input channels, kernel size, kernel size)
+  # backward pass: (output channels, kernel size, kernel size)
   kernel = expand(kernel, kernel_pad, kernel_dilation)
-  print(in_layer.shape, kernel.shape)
-  print()
 
-  for k in range(out_channels):
-    for y in range(0, out_height, stride):
-      for x in range(0, out_width, stride):
-        a, b = inset + y - half, inset + y + half + 1
-        c, d = inset + x - half, inset + x + half + 1
-        out_layer[k, y, x] = np.einsum("ijk,ijk->jk", in_layer[:, a:b, c:d], kernel[k]).sum()
+  axes = (layer.ndim - 2, layer.ndim - 1)
+  kernel_shape = (kernel.shape[-2], kernel.shape[-1])
 
-  return out_layer
+  # (input channels, new height, new width, kernel_size, kernel_size)
+  regions = sliding_window_view(layer, kernel_shape, axes)[:, ::stride, ::stride, :, :]
 
+  # weight gradient pass: (output channels, input channels, height, width)
+  if kernel.ndim == 3:
+    return np.einsum("ihwyx,oyx->oihw", regions, kernel)
+
+  # layer gradient pass: (input channels, height, width)
+  if layer_pad == kernel.shape[-1] - 1:
+    return np.einsum("ohwyx,ioyx->ihw", regions, kernel)
+
+  # standard convolution: (output channels, height, width)
+  return np.einsum("ihwyx,oiyx->ohw", regions, kernel)
 
 def initialize_params(shape):
-  out_size, *_, in_size = shape
+  out_size, in_size = 1, 1
+  if len(shape) == 4:
+    in_size = shape[1] * shape[2] * shape[3]
+    out_size = shape[0]
+  else:
+    out_size, in_size = shape[0], shape[1]
+
   variance = 2.0 / in_size
   if in_size != out_size:
     variance = 4.0 / (in_size + out_size)
@@ -110,6 +112,12 @@ def initialize_params(shape):
   bias = np.zeros((out_size, 1))
   return weight, bias
 
+def softmax(data):
+  e = np.exp(data - np.max(data))
+  return e / np.sum(e)
+
+def cross_entropy_loss(y, true_y):
+  return y - true_y
 
 class Linear:
   def __init__(self, weights_shape):
@@ -118,20 +126,13 @@ class Linear:
     self.weights_gradient = None
     self.bias_gradient = None
 
-  def forward(self, prev_layer, should_relu):
+  def forward(self, prev_layer):
     self.data = self.bias + self.weights @ prev_layer
-    if should_relu:
-      self.data = self.data.clip(0.0)
 
-  def backward(self, gradient, next_layer):
+  def backward(self, prev_layer, gradient):
     self.bias_gradient = gradient
-    self.weights_gradient = gradient @ self.data.T
-    return (next_layer > 0) * (self.weights.T @ gradient)
-
-  def softmax(self):
-    e = np.exp(self.data - np.max(self.data))
-    self.data = e / np.sum(e)
-
+    self.weights_gradient = np.outer(gradient, self.data.T)
+    return self.weights.T @ gradient
 
 class Convolutional:
   def __init__(self, weights_shape, stride, padding):
@@ -144,20 +145,22 @@ class Convolutional:
     self.bias_gradient = None
 
   def forward(self, prev_layer):
-    output = convolution(prev_layer, self.kernel, self.stride, self.padding, 1, 0, 0)
+    output = convolution(prev_layer, self.kernel, self.stride, self.padding, 1, 0, 1)
     self.data = self.biases.squeeze()[:, None, None] + output
-    self.data = self.data.clip(0.0)
 
-  def backward(self, gradient):
-    # TODO: apply relu derivative
+  def backward(self, prev_layer, gradient):
     self.bias_gradient = gradient
-    self.kernel_gradient = convolution(self.data, self.kernel, 1, self.padding, 1, 0, self.stride)
+    self.kernel_gradient = convolution(prev_layer, gradient, 1, self.padding, 1, 0, self.stride)
 
-    rotated = np.rot90(self.kernel, k=2, axes=(0, 1))
-    grad_padding = self.kernel.shape[-1] - 1 - self.padding
-    new_grad = convolution(gradient, rotated, 1, grad_padding, self.stride, 0, 1)
-    return new_grad
+    # Turn (C_o, C_i, K, K) ->  (C_i, C_o, K, K) and flip the kernel contents
+    transposed = np.transpose(self.kernel, (1, 0, 2, 3))
+    rotated = np.rot90(transposed, k=2, axes=(2, 3))
+    kernel_size = self.kernel.shape[-1]
 
+    gradient = convolution(gradient, rotated, 1, kernel_size - 1, self.stride, 0, 1)
+    if self.padding > 0: # Strip padding
+      gradient = gradient[:, self.padding:-self.padding, self.padding:-self.padding]
+    return gradient
 
 class Maxpool:
   def __init__(self, kernel_size, stride, flatten):
@@ -178,32 +181,38 @@ class Maxpool:
     for k in range(channels):
       for y in range(0, height):
         for x in range(0, width):
-          a, b = y * self.stride, y * self.stride + self.kernel_size + 1
-          c, d = x * self.stride, x * self.stride + self.kernel_size + 1
+          a, b = y * self.stride, y * self.stride + self.kernel_size
+          c, d = x * self.stride, x * self.stride + self.kernel_size
           region = prev_layer[k, a:b, c:d]
           self.data[k, y, x] = np.max(region)
 
           region_max_idx = np.argmax(region)
           region_y, region_x = np.unravel_index(region_max_idx, region.shape)
-          self.max_coordinates.append((c + region_x, a + region_y))
+          self.max_coordinates.append((k, a + region_y, c + region_x))
 
-    if self.flatten:
+    if self.flatten: # Turn into a column vector
       self.data = self.data.flatten()[:, None]
 
-    return self.data
-
-  def backward(self, gradient):
+  def backward(self, prev_layer, gradient):
     # The derivative of maxpool is max unpooling of the gradient
     gradient = gradient.flatten()
     new_grad = np.zeros(self.original_shape)
 
     for i, val in enumerate(gradient):
-      channel = np.unravel_index(i, self.original_shape)[0]
-      y, x = self.max_coordinates[i]
-      new_grad[channel, y, x] = val
+      k, y, x = self.max_coordinates[i]
+      new_grad[k, y, x] = val
 
     return new_grad
 
+class ReLU:
+  def __init__(self):
+    self.data = None
+
+  def forward(self, prev_layer):
+    self.data = prev_layer.clip(0.0)
+
+  def backward(self, prev_layer, gradient):
+    return (self.data > 0) * gradient
 
 classes = {
   "angry": 0, "confused": 1, "disgust": 2, "fear": 3,
@@ -213,33 +222,30 @@ classes = {
 imgs, labels = load_dataset("../data/fane/fane_data/", classes, (227, 227), 9)
 
 layers = [
-  Convolutional((96,  3, 11, 11), 4, 0),
-  Maxpool(3, 2, False),
-  Convolutional((256, 96, 5,  5), 1, 2),
-  Maxpool(3, 2, False),
-  Convolutional((384, 256, 3, 3), 1, 1),
-  Convolutional((384, 384, 3, 3), 1, 1),
-  Convolutional((256, 384, 3, 3), 1, 1),
-  Maxpool(3, 2, True),
-  Linear((4096, 9216)),
-  Linear((4096, 4096)),
-  Linear((4096, 4096)),
+  Convolutional((96,  3, 11, 11), 4, 0), ReLU(), Maxpool(3, 2, False),
+  Convolutional((256, 96, 5,  5), 1, 2), ReLU(), Maxpool(3, 2, False),
+  Convolutional((384, 256, 3, 3), 1, 1), ReLU(),
+  Convolutional((384, 384, 3, 3), 1, 1), ReLU(),
+  Convolutional((256, 384, 3, 3), 1, 1), ReLU(), Maxpool(3, 2, True),
+  Linear((4096, 9216)), ReLU(),
+  Linear((4096, 4096)), ReLU(),
+  Linear((4096, 4096)), ReLU(),
   Linear((9,    4096))
 ]
 sample_x, sample_y = imgs[0], labels[0]
 
 # Forward propagation
 for i, layer in enumerate(layers):
-  if type(layer) is Linear:
-    layer.forward(layers[i - 1].data, i != len(layers) - 1)
-  else:
-    layer.forward(sample_x if i == 0 else layers[i - 1].data)
-layers[-1].softmax()
+  prev_layer = sample_x if i == 0 else layers[i - 1].data
+  layer.forward(prev_layer)
+y = softmax(layers[-1].data)
 
 # Backward propagation
-gradient = layers[-1].data - sample_y # Derivative of cross entropy loss
-for i in range(len(layers) - 1, 0, -1):
-  if type(layers[i]) is Linear:
-    gradient = layers[i].backward(gradient, layers[i - 1].data)
-  else:
-    gradient = layers[i].backward(gradient)
+gradient = cross_entropy_loss(y, sample_y)
+for i in range(len(layers) - 1, -1, -1):
+  prev_layer = sample_x if i == 0 else layers[i - 1].data
+  gradient = layers[i].backward(prev_layer, gradient)
+
+answer = np.zeros(y.shape)
+answer[np.argmax(y)] = 1
+print("Output", y, answer)

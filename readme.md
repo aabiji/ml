@@ -46,5 +46,4 @@ Plan:
 Setup:
 ```bash
 sudo apt install okular latexmk
-# Make sure qpdfview has autoreload ticked!
 ```

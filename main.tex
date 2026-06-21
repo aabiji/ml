@@ -46,7 +46,7 @@ The sigmoid function maps a real value $z$ to a range of $[0, 1]$.
 The softmax function maps a vector of real values (logits) $\mathbf{z}$ to a vector of probabilities in a range of 0 to 1, where all probabilities sum to 1.
 \[ \text{softmax}[\mathbf{z_k}] = \frac{\exp[z_k]}{\sum_{k' = 0}^{K} \exp[z_k']} \]
 
-Suppose a transformation $t[x]$ is applied on a function $f[x]$. The function is \textit{invariant} if $f[t[x]] = f[x]$ and is \textit{equivariant} if $f[t[x]] = t[f[x]]$.
+Suppose a transformation $t[x]$ is applied on a function $f[x]$. The function is \textbf{invariant} if $f[t[x]] = f[x]$ and is \textbf{equivariant} if $f[t[x]] = t[f[x]]$.
 
 \section{Neural network basics}
 A model is a mathematical function defined by parameters that maps an input to an output. There are discriminative models and generative models. Discriminative models find outputs from inputs, while generative models find inputs from outputs. Most models are discriminative since it's easier to exploit the prior knowledge that's baked into the input data. Generative models have much higher losses than discriminative models, and seem to perform worse on the demo examples. Trying to capture all of the nuance that goes into generating a specific output really is so much harder than mapping an input to an output.
@@ -121,83 +121,76 @@ v_{t + 1} &= \gamma v_t + (1 - \gamma)\left(\sum_{i \in B_t} \frac{\partial l_i(
 \end{itemize}
 
 \section{Backpropagation}
-\begin{itemize}
-\item Backpropagation is an algorithm that iteratively applies the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer is a function that composes the previous layer. A neural network can also be thought of as a \href{https://www.youtube.com/watch?v=i94OvYb6noo}{directed acyclic graph}, where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers). Gradients are computed for every training sample in a batch, then summed together to get the gradient used in an optimization algorithm.
+Backpropagation is an algorithm that iteratively applies the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer is a function that composes the previous layer. A neural network can also be thought of as a \href{https://www.youtube.com/watch?v=i94OvYb6noo}{directed acyclic graph}, where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers). Gradients are computed for every training sample in a batch, then summed together to get the gradient used in an optimization algorithm.
 
-\item A forward pass is done to compute and cache values of hidden units in each layer, which will be used to compute gradients. Note that hidden units are not conserved across epochs and batche.
+A forward pass is done to compute and cache values of hidden units in each layer, which will be used to compute gradients. Note that hidden units are not conserved across epochs and batche.
 \begin{align*}
 f_0       &= \boldsymbol{\beta_0} + \boldsymbol{\Omega_0}\mathbf{x}\\
 h_k       &= a[f_{k - 1}] && k \in \{1, 2, 3, \dots, K\}\\
 f_{k - 1} &= \boldsymbol{\beta_k} + \boldsymbol{\Omega_k} \mathbf{h_k} && k \in \{1, 2, 3, \dots, K\}
 \end{align*}
 
-\item A backward pass is done to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows. Note that an outer product is used when computing the derivative of loss with respect to weights. The derivative of the loss with respect to the hidden units is a column vector. Gradients are layer specific, and during the optimization algorithm, the gradient used to step is an average of all the gradients for each training sample in the batch.
+A backward pass is done to compute the derivative of the loss with respect to every weight and bias in the network. The rules for computing local gradients and updating the global gradient are as follows. Note that an outer product is used when computing the derivative of loss with respect to weights. The derivative of the loss with respect to the hidden units is a column vector. Gradients are layer specific, and during the optimization algorithm, the gradient used to step is an average of all the gradients for each training sample in the batch.
 \[ \frac{\partial l_i}{\partial \boldsymbol{\beta_k}} = \frac{\partial l_i}{\partial f_k} \]
 \[ \frac{\partial l_i}{\partial \boldsymbol{\Omega_k}} = \frac{\partial l_i}{\partial f_k} h_k^T \]
 \[ \frac{\partial l_i}{\partial f_{k - 1}} = I[f_{k - 1} > 0] \odot \boldsymbol{\Omega_k}^T \frac{\partial l_i}{\partial f_k} \]
 
-\item $k \in \{K - 1, K - 2, K - 3, \dots, 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $\text{ReLU}^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, its diagonal elements are directly computed, which is just: \texttt{hidden\_unit > 0}.
+$k \in \{K - 1, K - 2, K - 3, \dots, 1\}$, and $\frac{\partial l_i}{\partial f_k}$ is the global gradient. The derivative of ReLU with respect to the hidden units is a Jacobian matrix ($J$). When $i \neq j, J_{ij} = 0$, since $\text{ReLU}^{\prime}(i)$ only depends on $i$. The diagonal elements in $J$ would be either 1 or 0 (considering the definition of ReLU). Instead of computing the entire Jacobian, its diagonal elements are directly computed, which is just: \texttt{hidden\_unit > 0}.
 
-\item Backpropagation is different for \href{https://deeplearning.cs.cmu.edu/F21/document/recitation/Recitation5/CNN_Backprop_Recitation_5_F21.pdf}{convolutional layers}. We need to compute the derivative of the loss with respect to the kernel $F$ (1) and the derivative of the loss with respect to the current layer $X$ (2), using the previous layer $O$. $\frac{\partial L}{\partial O}$ is the incoming gradient from later layers (global gradient). If only a single channel is used, then think of each value and derivative as a matrix.
-
-(1) The convolution is done without any padding on either matrix, where $\frac{\partial L}{\partial O}$ is dilated by $\text{stride}$.
-(2) To rotate by 180 degrees, $F$ is flipped vertically then horizontally. The convolution is done with $\frac{\partial L}{\partial O}$ dilated and zero-padded by $\text{stride}$.
+Backpropagation is different for \href{https://deeplearning.cs.cmu.edu/F21/document/recitation/Recitation5/CNN_Backprop_Recitation_5_F21.pdf}{convolutional layers}. We need to compute the derivative of the loss with respect to the kernel F (1) and the derivative of the loss with respect to the previous layer X (2).
+(1) X is padded by the current layer's padding and the gradient is dilated by the current layer's stride.
+(2) To rotate by 180 degrees, F is flipped vertically then horizontally. The gradient dilated by the current layer's stride and zero-padded by the current layer's kernel size minus one.
 
 \begin{align*}
-\frac{\partial L}{\partial F} &= \text{convolution}[X, \frac{\partial L}{\partial O}] \tag{1} \\\\
-\frac{\partial L}{\partial X} &= \text{convolution}\left[\frac{\partial L}{\partial O}, \text{rot180}[F]\right] \tag{2}
+\frac{\partial L}{\partial F} &= \text{convolution}\left[X, \frac{\partial l_i}{\partial f_k}\right] \tag{1} \\\\
+\frac{\partial L}{\partial X} &= \text{convolution}\left[\frac{\partial l_i}{\partial f_k}, \text{rot180}[F]\right] \tag{2}
 \end{align*}
-\end{itemize}
 
 \section{Regularization}
-\begin{itemize}
-\item See p.155, figure 9.14
+See p.155, figure 9.14
 
-\item Regularization refers to any method that decreases the generalization gap between test and training performance. Explicit regularization involves adding an explicit term to the loss function in order to favor certain parameters. This involves moving away from a maximum likelihood criterion to a maximum a posteriori criterion, where the negative log loss also includes a probability $Pr(\phi)$, a belief about the data.
+Regularization refers to any method that decreases the generalization gap between test and training performance. Explicit regularization involves adding an explicit term to the loss function in order to favor certain parameters. This involves moving away from a maximum likelihood criterion to a maximum a posteriori criterion, where the negative log loss also includes a probability $Pr(\phi)$, a belief about the data.
 \[ \boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmax}}\left[Pr(\phi)\prod_{i = 1}^{I} Pr(y_i|x_i, \phi)\right] \]
 
-\item The most common regularization term is the \textit{L2 norm}, which biases smaller parameters, making the model output change slower. Parameters should be as small as possible (simplest solution) while still minimizing the loss function. L2 norm is applied to weights, and having smaller weights will reduce variance and make the model fit a smoother function, at the cost of reducing data fit. With small values of $\lambda$, test performance improves.
+The most common regularization term is the \textbf{L2 norm}, which biases smaller parameters, making the model output change slower. Parameters should be as small as possible (simplest solution) while still minimizing the loss function. L2 norm is applied to weights, and having smaller weights will reduce variance and make the model fit a smoother function, at the cost of reducing data fit. With small values of $\lambda$, test performance improves.
 \[ \boldsymbol{\hat{\phi}} = \underset{\phi}{\text{argmin}}\left[\sum_{i = 1}^{I} l_i[x_i, y_i] + \lambda \sum_{j}\phi_j^2\right] \]
 
-\item The following are ways to improve model performance. Note that these aren't silver bullets. In theory they should improve test performance, but neural networks are very finicky; the optimal hyperparameters and learning strategies to use should be determined empirically.
+The following are ways to improve model performance. Note that these aren't silver bullets. In theory they should improve test performance, but neural networks are very finicky; the optimal hyperparameters and learning strategies to use should be determined empirically.
 \begin{itemize}
-  \item \textit{Early stopping}: Stop training the model before it fully converges. In practice this means training the model for a large number of epochs to see which number of epochs maximizes performance.
-  \item \textit{Ensembling}: Run inference on multiple models and average their outputs together to get a more confident answer. This can be done by training identical models with random parameter initializations, identical models trained on different randomly sampled training data (called bootstrap aggregating), or training different model architectures on identical data.
-  \item \textit{Dropout}: Dur{ng training, clamp a random subset of hidden units (typically half) to zero. This helps the model reduce its reliance on any given hidden unit and encourages the weights to be smaller so that the output fluctuates less wildly when hidden units are turned off. During inference, all hidden units are active, so weights are multiplied by $1 - \eta$, where $\eta$ is the dropout probability (weight scaling inference rule). One can also do Monte Carlo dropout instead, where you run inference on the model multiple times with random subsets of the hidden units clipped, and then combine results.
-  \item \textit{Apply noise} to:
+  \item \textbf{Early stopping}: Stop training the model before it fully converges. In practice this means training the model for a large number of epochs to see which number of epochs maximizes performance.
+  \item \textbf{Ensembling}: Run inference on multiple models and average their outputs together to get a more confident answer. This can be done by training identical models with random parameter initializations, identical models trained on different randomly sampled training data (called bootstrap aggregating), or training different model architectures on identical data.
+  \item \textbf{Dropout}: During training, clamp a random subset of hidden units (typically half) to zero. This helps the model reduce its reliance on any given hidden unit and encourages the weights to be smaller so that the output fluctuates less wildly when hidden units are turned off. During inference, all hidden units are active, so weights are multiplied by $1 - \eta$, where $\eta$ is the dropout probability (weight scaling inference rule). One can also do Monte Carlo dropout instead, where you run inference on the model multiple times with random subsets of the hidden units clipped, and then combine results.
+  \item \textbf{Apply noise} to:
   \begin{itemize}
     \item Inputs: Makes the model fit to more variable samples, improving test performance.
     \item Weights: Makes the training converge to a local minima inside of a flat middle region, where changing the weights doesn't affect the output much. The model becomes less particular about specific weight values.
-    \item Labels: Makes the model stop chasing absolute certainty. \textit{Label smoothing} refers to changing the loss function to minimize the cross-entropy between the predicted and actual distribution (Where the true label has a probability $1-\rho$ and all the other classes have equal probability. $\rho$ is the proportion of the training labels that are assumed incorrect.).
+    \item Labels: Makes the model stop chasing absolute certainty. Label smoothing refers to changing the loss function to minimize the cross-entropy between the predicted and actual distribution (Where the true label has a probability $1-\rho$ and all the other classes have equal probability. $\rho$ is the proportion of the training labels that are assumed incorrect.).
   \end{itemize}
-  \item \textit{Transfer learning}: The initial layers of a model act as feature extractors and the final layers act as classification heads. Transfer learning leverages this by freezing the parameters of the pre-trained feature extractor and only training the classification head on the target dataset. \textit{Multi-task learning} is when the model is trained to solve multiple problems concurrently, hoping that the performance on each will improve.
-  \item \textit{Data Augmentation}: Generate different variations of the input data (add synonyms to text, blur images, filter audio, etc) in order to teach the model to be indifferent to irrelevant data transformations.
-  \item \textit{Self-supervised learning}: Generate more labelled data using a secondary generative model.
+  \item \textbf{Transfer learning}: The initial layers of a model act as feature extractors and the final layers act as classification heads. Transfer learning leverages this by freezing the parameters of the pre-trained feature extractor and only training the classification head on the target dataset. Multi-task learning is when the model is trained to solve multiple problems concurrently, hoping that the performance on each will improve.
+  \item \textbf{Data Augmentation}: Generate different variations of the input data (add synonyms to text, blur images, filter audio, etc) in order to teach the model to be indifferent to irrelevant data transformations.
+  \item \textbf{Self-supervised learning}: Generate more labelled data using a secondary generative model.
   \begin{itemize}
-    \item In \textit{generative self-supervised learning}, parts of each data is masked and the secondary task is to predict the missing part.
-    \item In \textit{contrastive self-supervised learning}, pairs of examples with commonalities are compared to unrelated pairs.
+    \item In generative self-supervised learning, parts of each data is masked and the secondary task is to predict the missing part.
+    \item In contrastive self-supervised learning, pairs of examples with commonalities are compared to unrelated pairs.
   \end{itemize}
 \end{itemize}
-\end{itemize}
 
-\subsection{Convolutional networks}
-\begin{itemize}
-\item A convolutional network is composed of a series of convolutional layers. Convolutional layers are a special subset of fully connected layers. A convolution is a weighted sum over a set of inputs using fixed parameters called a convolutional kernel or a filter. A valid convolution is a convolution that avoids inputs that are out of range, and a zero padded convolution is a convolution that uses zeros in place of inputs that are out of range. Stride is the step size used when sliding over the input and dilating is the number of zeros interspersed between the inputs plus one.
+\section{Convolutional networks}
+A convolutional network is composed of a series of convolutional layers. Convolutional layers are a special subset of fully connected layers. A convolution is a weighted sum over a set of inputs using fixed parameters called a convolutional kernel or a filter. A valid convolution is a convolution that avoids inputs that are out of range, and a zero padded convolution is a convolution that uses zeros in place of inputs that are out of range. Stride is the step size used when sliding over the input and dilating is the number of zeros interspersed between the inputs plus one.
 
-\item A convolutional layer computes its outputs by convolving the input, adding a bias and passing the result through an activation function. Each kernel used to convolve corresponds to an output channel. Channels add depth to the convolutional layer. A convolutional layer is equivariant to translation because of the use of the same kernel over the entire image, and partially invariant to translation because of max pooling.
+ A convolutional layer computes its outputs by convolving the input, adding a bias and passing the result through an activation function. Each kernel used to convolve corresponds to an output channel. Channels add depth to the convolutional layer. A convolutional layer is equivariant to translation because of the use of the same kernel over the entire image, and partially invariant to translation because of max pooling.
 
-\item For a 2D convolution on RGB images, a $C_i \times K \times K$ kernel is slid over the image, resulting in a $C_{h} \times C_{w}$ matrix. $C_i$ is the number of input channels, $C_{w}$ is the output width, $C_{h}$ is the output height. Hidden layers are 3D, unlike layers in feedforward networks that are always 1D. Each channel's hidden unit is computed as the following, where $\omega_{ij}$ is the kernel weights, $m$ is $\lceil K/2 \rceil$ and $n \in [1, C_o]$.
+For a 2D convolution on RGB images, a $C_i \times K \times K$ kernel is slid over the image, resulting in a $C_{h} \times C_{w}$ matrix. $C_i$ is the number of input channels, $C_{w}$ is the output width, $C_{h}$ is the output height. Hidden layers are 3D, unlike layers in feedforward networks that are always 1D. Each channel's hidden unit is computed as the following, where $\omega_{ij}$ is the kernel weights, $m$ is $\lceil K/2 \rceil$ and $n \in [1, C_o]$.
   \[ h_{nyx} = a\left[\boldsymbol{\beta} + \sum_{c=1}^{C_i} \sum_{i=1}^{K} \sum_{j = 1}^{K} \omega_{cij} x_{c,i-m,j-m}\right] \]
 
 Weights are defined as $\boldsymbol{\Omega} \in \mathbb{R}^{C_o \times C_i \times K \times K}$ where $C_i$ is the number of channels in the previous layer, $C_o$ is the number of channels in the current layer and $K$ is the kernel size. Biases can be defined as $\boldsymbol{\beta} \in \mathbb{R}^{C_o}$. The output layer size is defined as the following where $N$ is the current layer size, $P$ is padding and $K$ is the kernel size and $S$ is the stride.
 \[ \frac{N + 2P - K}{S} + 1 \]
 
-\item There are different types of convolutions:
+There are different types of convolutions:
 \begin{itemize}
-  \item \textit{Strided convolution}: Refers to a convolution with a stride $> 1$. This \textit{downsamples} the original input size. For example, with a stride of 2, there would be half as many outputs as there are inputs. There are other ways to downsample an image. Using max pooling/mean pooling reduces a 2x2 block of pixels down to the max value/mean value of the block.
-  \item \textit{Transposed convolution}: Refers to a convolution that uses the transpose of the weight matrix used in a strided convolution. This \textit{upsamples} the original input size. For example, there would be twice as many outputs as there are inputs, and each input would correspond to two outputs. There are other ways to upsample an image. Using max unpooling or bilinear interpolation or duplicating the current value across a 2x2 block.
-  \item A \textit{1x1 convolution} reduces the number of feature maps without reducing the number of spatial dimensions. A $C_o \times C_i \times 1 \times 1$ kernel is ran on the input layer, resulting in a $1 \times C_h \times C_w$ result for every output channel $C_o$. This improves computational efficiency and is equivalent to running a fully connected layer on the input channels at every position.
-\end{itemize}
+  \item \textbf{Strided convolution}: Refers to a convolution with a stride $> 1$. This downsamples the original input size. For example, with a stride of 2, there would be half as many outputs as there are inputs. There are other ways to downsample an image. Using max pooling/mean pooling reduces a 2x2 block of pixels down to the max value/mean value of the block.
+  \item \textbf{Transposed convolution}: Refers to a convolution that uses the transpose of the weight matrix used in a strided convolution. This upsamples the original input size. For example, there would be twice as many outputs as there are inputs, and each input would correspond to two outputs. There are other ways to upsample an image. Using max unpooling or bilinear interpolation or duplicating the current value across a 2x2 block.
+  \item A \textbf{1x1 convolution} reduces the number of feature maps without reducing the number of spatial dimensions. A $C_o \times C_i \times 1 \times 1$ kernel is ran on the input layer, resulting in a $1 \times C_h \times C_w$ result for every output channel $C_o$. This improves computational efficiency and is equivalent to running a fully connected layer on the input channels at every position.
 \end{itemize}
 
 \end{document}
