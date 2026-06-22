@@ -5,8 +5,14 @@ from PIL import Image, ImageOps
 from pathlib import Path
 from numpy.lib.stride_tricks import sliding_window_view
 
-# TODO: go through paper again and add training details
-# TODO: vectorize into (batch_size, ...)
+# Implement the following novelties:
+# - dropout
+# - the same ewight and bias initalized as used in the paper
+# - normal response normalization
+# - should weight decay be applie
+# - data augmentation
+# - Visualize loss through each epoch
+# Then use cupy when training on Kaggle. Save the weights + biases for each layer to a file for download later.
 
 np.set_printoptions(precision=4)
 
@@ -48,15 +54,18 @@ def load_dataset(outer_folder_path, classes, img_dim, num_batches, batch_size):
 def expand(data, pad, dilation):
   output = data
 
-  # Dilate - Insert a number of zeroes between elements in the array in the specific axes
+  # Dilate - Insert a number of zeroes between
+  # elements in the array in the specific axes
   if dilation > 1:
     new_shape = list(data.shape)
     slices = [slice(None) for _ in range(data.ndim)]
     last = len(data.shape) - 1
 
     # Update the sizes of the last two axes
-    new_shape[last]= data.shape[last] + (data.shape[last] - 1) * (dilation - 1)
-    new_shape[last - 1] = data.shape[last - 1] + (data.shape[last - 1] - 1) * (dilation - 1)
+    new_shape[last] = \
+      data.shape[last] + (data.shape[last] - 1) * (dilation - 1)
+    new_shape[last - 1] = \
+      data.shape[last - 1] + (data.shape[last - 1] - 1) * (dilation - 1)
 
     slices[last] = slice(None, None, dilation)
     slices[last - 1] = slice(None, None, dilation)
@@ -68,51 +77,57 @@ def expand(data, pad, dilation):
   if pad > 0:
     dims = [(0, 0) for _ in range(len(data.shape))]
     dims[-1] = dims[-2] = (pad, pad)
-    output = np.pad(output, pad_width=tuple(dims), mode="constant", constant_values=0)
+    output = np.pad(output, pad_width=tuple(dims),
+                    mode="constant", constant_values=0)
 
   return output
 
-# layer_shape   = (num_channels, height, width)
-# weights_shape = (output channels, input channels, size, size)
+# Dimensions:
+# B = batch size, H = height, W = width, C = number of channels
+# C_i = number of input channels (convolutional) or previous layer width (linear)
+# C_o = number of output channels (convolutional) or next layer width (linear)
+# K = kernel size
+#
+# layer_shape = (B, C, H, W), weights_shape = (B, C_o, C_i, K, K)
 def cnn_layer_shape(layer_shape, kernel_shape, stride, pad):
   return (
-    kernel_shape[0],
-    int((layer_shape[1] + 2 * pad - kernel_shape[2]) / stride) + 1,
-    int((layer_shape[2] + 2 * pad - kernel_shape[2]) / stride) + 1
+    kernel_shape[1],
+    int((layer_shape[-2] + 2 * pad - kernel_shape[-1]) / stride) + 1,
+    int((layer_shape[-1] + 2 * pad - kernel_shape[-1]) / stride) + 1
   )
 
-def convolution(layer, kernel, stride, layer_pad, layer_dilation, kernel_pad, kernel_dilation):
-  # layer shape  = (input channels, height, width)
-  layer = expand(layer, layer_pad, layer_dilation)
+def convolution(layer, kernel, stride, layer_pad,
+                layer_dilation, kernel_pad, kernel_dilation):
+  layer = expand(layer, layer_pad, layer_dilation) # (B, C_i, H, W)
 
-  #   foward pass: (output channels, input channels, kernel size, kernel size)
-  # backward pass: (output channels, kernel size, kernel size)
+  # foward pass: (B, C_o, C_i, K, K), backward pass: (B, C_o, K, K)
   kernel = expand(kernel, kernel_pad, kernel_dilation)
 
   axes = (layer.ndim - 2, layer.ndim - 1)
   kernel_shape = (kernel.shape[-2], kernel.shape[-1])
 
-  # (input channels, new height, new width, kernel_size, kernel_size)
-  regions = sliding_window_view(layer, kernel_shape, axes)[:, ::stride, ::stride, :, :]
+  # (B, C_i, H, W, K, K)
+  regions = \
+    sliding_window_view(layer, kernel_shape, axes)[:, :, ::stride, ::stride, :, :]
 
-  # weight gradient pass: (output channels, input channels, height, width)
-  if kernel.ndim == 3:
-    return np.einsum("ihwyx,oyx->oihw", regions, kernel)
+  # weight gradient: (B, C_o, C_i, H, W)
+  if kernel.ndim == 4:
+    return np.einsum("bihwyx,boyx->boihw", regions, kernel)
 
-  # layer gradient pass: (input channels, height, width)
+  # layer gradient: (B, C_i, C_o, H, W)
   if layer_pad == kernel.shape[-1] - 1:
-    return np.einsum("ohwyx,ioyx->ihw", regions, kernel)
+    return np.einsum("bohwyx,bioyx->bihw", regions, kernel)
 
-  # standard convolution: (output channels, height, width)
-  return np.einsum("ihwyx,oiyx->ohw", regions, kernel)
+  # standard convolution: (B, C_o, H, W)
+  return np.einsum("bihwyx,boiyx->bohw", regions, kernel)
 
 def initialize_params(shape):
   out_size, in_size = 1, 1
-  if len(shape) == 4:
-    in_size = shape[1] * shape[2] * shape[3]
-    out_size = shape[0]
-  else:
-    out_size, in_size = shape[0], shape[1]
+  if len(shape) == 5: # weights
+    in_size = shape[2] * shape[3] * shape[4]
+    out_size = shape[1]
+  else: # layers
+    out_size, in_size = shape[1], shape[2]
 
   variance = 2.0 / in_size
   if in_size != out_size:
@@ -130,6 +145,10 @@ def softmax(data):
 def cross_entropy_loss_gradient(y, true_y):
   return y - true_y
 
+# Flatten data into a column vector while preserving batch size
+def flatten(data):
+  return data.reshape(data.shape[0], -1, 1)
+
 class Linear:
   def __init__(self, weights_shape):
     self.weights, self.biases = initialize_params(weights_shape)
@@ -141,9 +160,9 @@ class Linear:
     self.data = self.biases + self.weights @ prev_layer
 
   def backward(self, prev_layer, gradient):
-    self.biases_gradient = gradient
-    self.weights_gradient = np.outer(gradient, prev_layer)
-    return self.weights.T @ gradient
+    self.biases_gradient = np.sum(gradient, axis=0)
+    self.weights_gradient = gradient @ np.swapaxes(prev_layer, -1, -2)
+    return np.swapaxes(self.weights, -1, -2) @ gradient
 
 class Convolutional:
   def __init__(self, weights_shape, stride, padding):
@@ -156,64 +175,64 @@ class Convolutional:
     self.biases_gradient = None
 
   def forward(self, prev_layer):
-    output = convolution(prev_layer, self.weights, self.stride, self.padding, 1, 0, 1)
+    output = convolution(prev_layer, self.weights,
+                         self.stride, self.padding, 1, 0, 1)
     self.data = self.biases.squeeze()[:, None, None] + output
 
   def backward(self, prev_layer, gradient):
-    self.biases_gradient = gradient.sum(axis=(1, 2)).flatten()[:, None]
-    self.weights_gradient = convolution(prev_layer, gradient, 1, self.padding, 1, 0, self.stride)
+    self.biases_gradient = flatten(gradient.sum(axis=(2, 3)))
+    self.weights_gradient = convolution(prev_layer, gradient, 1,
+                                        self.padding, 1, 0, self.stride)
 
-    # Turn (C_o, C_i, K, K) ->  (C_i, C_o, K, K) and flip the kernel contents
-    transposed = np.transpose(self.weights, (1, 0, 2, 3))
-    rotated = np.rot90(transposed, k=2, axes=(2, 3))
+    # Turn (B, C_o, C_i, K, K) ->  (B, C_i, C_o, K, K) and flip the kernel contents
+    transposed = np.transpose(self.weights, (0, 2, 1, 3, 4))
+    rotated = np.rot90(transposed, k=2, axes=(3, 4))
     kernel_size = self.weights.shape[-1]
 
     gradient = convolution(gradient, rotated, 1, kernel_size - 1, self.stride, 0, 1)
     if self.padding > 0: # Strip padding
-      gradient = gradient[:, self.padding:-self.padding, self.padding:-self.padding]
+      gradient = gradient[:, :, self.padding:-self.padding, self.padding:-self.padding]
     return gradient
 
 class Maxpool:
   def __init__(self, kernel_size, stride, flatten):
     self.data = None
-    self.original_shape = None # Before the maxpool
-    self.max_coordinates = []
-    self.weights_size = kernel_size
-    self.stride = stride
+    self.argmax = None
+    self.old_shape = None
+    self.new_shape = None
+    self.N = kernel_size
+    self.S = stride
     self.flatten = flatten
 
   def forward(self, prev_layer):
-    # Max pooling to reduce layer dimensions
-    s = (prev_layer.shape[0], prev_layer.shape[0], self.weights_size, self.weights_size)
-    self.data = np.zeros(cnn_layer_shape(prev_layer.shape, s, self.stride, 0))
-    self.original_shape = prev_layer.shape
-    channels, height, width = self.data.shape
+    axes = (prev_layer.ndim - 2, prev_layer.ndim - 1)
 
-    for k in range(channels):
-      for y in range(0, height):
-        for x in range(0, width):
-          a, b = y * self.stride, y * self.stride + self.weights_size
-          c, d = x * self.stride, x * self.stride + self.weights_size
-          region = prev_layer[k, a:b, c:d]
-          self.data[k, y, x] = np.max(region)
+    # Extract max value from each (N, N) regions, shape: (B, C, H, W, K, K)
+    regions = sliding_window_view(prev_layer, (self.N, self.N), axes)[:, :, ::self.S, ::self.S]
+    self.data = np.max(regions, axis=(-2, -1))
+    self.old_shape = prev_layer.shape
+    self.new_shape = self.data.shape
 
-          region_max_idx = np.argmax(region)
-          region_y, region_x = np.unravel_index(region_max_idx, region.shape)
-          self.max_coordinates.append((k, a + region_y, c + region_x))
+    # Each value in (B, C, H, W) stores an index from 0 to (N * N - 1)
+    b, c, h, w, _, _ = regions.shape
+    self.argmax = np.reshape(regions, (b, c, h, w, self.N * self.N)).argmax(axis=-1)
 
     if self.flatten: # Turn into a column vector
-      self.data = self.data.flatten()[:, None]
+      self.data = flatten(self.data)
 
   def backward(self, prev_layer, gradient):
-    # The derivative of maxpool is max unpooling of the gradient
-    gradient = gradient.flatten()
-    new_grad = np.zeros(self.original_shape)
+    # The derivative of a max pool is a max unpool
+    if self.flatten:
+      self.data = self.data.reshape(self.new_shape)
 
-    for i, val in enumerate(gradient):
-      k, y, x = self.max_coordinates[i]
-      new_grad[k, y, x] = val
+    i = self.argmax // self.N
+    j = self.argmax % self.N
+    b, c, h, w = np.indices(self.data.shape)
 
-    return new_grad
+    # Assign the max values to their original positions
+    gradient = np.zeros(self.old_shape)
+    gradient[b, c, h * self.S + i, w * self.S + j] = self.data
+    return gradient
 
 class ReLU:
   def __init__(self):
@@ -231,17 +250,20 @@ classes = {
   "fear":  3, "happy":    4, "neutral": 5,
   "sad":   6, "shy":     7, "surprise": 8
 }
-epochs, num_batches, batch_size = 1, 5, 5
+epochs, num_batches, B = 1, 5, 5
 learning_rate = 0.001
 num_layers = 9 # Excluding relu and maxpool layers
 
-imgs, labels = load_dataset("../data/fane/fane_data/", classes, (227, 227), num_batches + 1, batch_size)
+imgs, labels = load_dataset(
+  "../data/fane/fane_data/", classes, (227, 227), num_batches + 1, B)
 train_imgs, train_labels = imgs[1:], labels[1:]
 test_imgs, test_labels = imgs[0], labels[0]
 
+# (batch size, channels out, channels in, kernel size, kernel size)
 weight_shapes = [
-  (96, 3, 11, 11), (256, 96, 5, 5), (384, 256, 3, 3), (384, 384, 3, 3),
-  (256, 384, 3, 3), (4096, 9216), (4096, 4096), (4096, 4096), (9, 4096),
+  (B,  96, 3, 11, 11), (B,  256, 96, 5, 5), (B, 384, 256, 3, 3),
+  (B, 384, 384, 3, 3), (B, 256, 384, 3, 3), (B, 4096, 9216),
+  (B, 4096, 4096), (B, 4096, 4096), (B, 9, 4096),
 ]
 
 layers = [
@@ -257,47 +279,41 @@ layers = [
 ]
 
 wmomentum = [np.zeros(weight_shapes[i]) for i in range(num_layers)]
-bmomentum = [np.zeros((weight_shapes[i][0], 1)) for i in range(num_layers)]
+bmomentum = [np.zeros((weight_shapes[i][1], 1)) for i in range(num_layers)]
 
-for batch_index in range(num_batches):
-  wgradients_sum = [np.zeros(weight_shapes[i]) for i in range(num_layers)]
-  bgradients_sum = [np.zeros((weight_shapes[i][0], 1)) for i in range(num_layers)]
+for epoch in range(epochs):
+  for b in range(num_batches):
+    print(f"Epoch {epoch}, Batch {b + 1}/{num_batches}")
 
-  for sample_index in range(batch_size):
-    sample_x = train_imgs[batch_index, sample_index]
-    sample_y = train_labels[batch_index, sample_index]
+    batch_x, batch_y = train_imgs[b], train_labels[b]
+    wgradients, bgradients = [0] * num_layers, [0] * num_layers
 
     # Forward propagation
     for i, layer in enumerate(layers):
-      prev_layer = sample_x if i == 0 else layers[i - 1].data
+      prev_layer = batch_x if i == 0 else layers[i - 1].data
       layer.forward(prev_layer)
 
     # Backward propagation
-    layer_count = num_layers - 1
-    gradient = cross_entropy_loss_gradient(layers[-1].data, sample_y)
+    count = num_layers - 1
+    gradient = cross_entropy_loss_gradient(layers[-1].data, batch_y)
     for i in range(len(layers) - 1, -1, -1):
-      prev_layer = sample_x if i == 0 else layers[i - 1].data
+      prev_layer = batch_x if i == 0 else layers[i - 1].data
       gradient = layers[i].backward(prev_layer, gradient)
 
       if type(layers[i]) is Linear or type(layers[i]) is Convolutional:
-        wgradients_sum[layer_count] += layers[i].weights_gradient
-        bgradients_sum[layer_count] += layers[i].biases_gradient
-        layer_count -= 1
+        wgradients[count] = layers[i].weights_gradient
+        bgradients[count] = layers[i].biases_gradient
+        count -= 1
 
-  indices = [0, 3, 6, 8, 10, 13, 15, 17, 19]
-  for j in range(num_layers):
-    i = indices[j]
-    wmomentum[j] = 0.9 * wmomentum[j] - \
-                         0.0005 * learning_rate * layers[i].weights - \
-                         learning_rate * wgradients_sum[j] / batch_size
-    layer[i].weights += wmomentum[j]
+    indices = [0, 3, 6, 8, 10, 13, 15, 17, 19]
+    for j in range(num_layers):
+      i = indices[j]
+      wmomentum[j] = 0.9 * wmomentum[j] - \
+                     0.0005 * learning_rate * layers[i].weights - \
+                     learning_rate * wgradients[j] / B
+      layers[i].weights += wmomentum[j]
 
-    # Momentum and weight dampening is applied to biases, right??
-    bmomentum[j] = 0.9 * bmomentum[j] - \
-                         0.0005 * learning_rate * layers[i].biases - \
-                         learning_rate * bgradients_sum[j] / batch_size
-    layer[i].biases += bmomentum[j]
+      # Momentum and weight dampening is applied to biases, right?? Should we add weight decay?
+      bmomentum[j] = 0.9 * bmomentum[j] - learning_rate * bgradients[j] / B
+      layers[i].biases += bmomentum[j]
 
-#answer = np.zeros(y.shape)
-#answer[np.argmax(y)] = 1
-#print("Output", y, answer)
