@@ -97,7 +97,9 @@ The following are a few common loss functions.
 \section{Backpropagation}
 Backpropagation is an algorithm that iteratively applies the chain rule to any arbitrary computational graph. A neural network can be thought of as a series of function compositions, where each layer is a function that composes the previous layer. A neural network can also be thought of as a \href{https://www.youtube.com/watch?v=i94OvYb6noo}{directed acyclic graph}, where each layer is a node. Backpropagation is just going through each node, right to left, and computing the local gradient, multiplying it by the global gradient (which is initialized to 1), and passing an updated global gradient to child nodes (previous layers). Gradients are computed for every training sample in a batch, then summed together to get the gradient used in an optimization algorithm. The loss function gradient is used as the initial gradient.
 
-A forward pass is done to compute and cache values of hidden units in each layer, which will be used to compute gradients. Note that hidden units are not conserved across epochs and batche.
+A forward pass is done to compute and cache values of hidden units in each layer, which will be used to compute gradients. Each sample in the batch uses the same weights and the same biases.
+Layers are different for every sample in the batch, and weight and bias gradients are summed across the batch (don't have a batch dimension).
+
 \begin{align*}
 f_0       &= \boldsymbol{\beta_0} + \boldsymbol{\Omega_0}\mathbf{x}\\
 h_k       &= a[f_{k - 1}] && k \in \{1, 2, 3, \dots, K\}\\
