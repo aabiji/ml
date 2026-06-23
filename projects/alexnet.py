@@ -1,3 +1,9 @@
+# The following is a "from scratch" reimplementation of the AlexNet paper.
+# It's not an identical replication, since this model trains on a much smaller
+# dataset, and only outputs a distribution over 9 class labels. Additionally,
+# PCA is not used for data augmentation, the learning stays fixed and only 3
+# image crops are used to augment randomly selecting images.
+
 import numpy as np
 import os
 import random
@@ -5,15 +11,8 @@ from PIL import Image, ImageOps
 from pathlib import Path
 from numpy.lib.stride_tricks import sliding_window_view
 
-# Implement the following novelties:
-# - dropout
-# - data augmentation
-# - Visualize loss through each epoch
-# Then use cupy when training on Kaggle. Save the weights + biases for each layer to a file for download later.
 
-np.set_printoptions(precision=4)
-
-def select_randomized_files(outer_folder_path, num_files):
+def randomly_select_files(outer_folder_path, num_files):
   class_folders = Path(outer_folder_path).iterdir()
   all_files = []
 
@@ -24,10 +23,12 @@ def select_randomized_files(outer_folder_path, num_files):
   selection_count = min(len(all_files), num_files)
   return random.sample(all_files, selection_count)
 
-def load_dataset(outer_folder_path, classes, img_dim, num_batches, batch_size):
-  paths = select_randomized_files(outer_folder_path, num_batches * batch_size)
 
-  imgs = np.zeros((num_batches, batch_size, 3, img_dim[0], img_dim[1]))
+def load_dataset(outer_folder_path, classes, num_crops, num_batches, batch_size):
+  paths = randomly_select_files(outer_folder_path, num_batches * batch_size)
+
+  total = batch_size * num_crops
+  imgs = np.zeros((num_batches, total, 3, 227, 227))
   labels = np.zeros((num_batches, batch_size, len(classes), 1))
 
   for i in range(num_batches):
@@ -37,16 +38,23 @@ def load_dataset(outer_folder_path, classes, img_dim, num_batches, batch_size):
       name = Path(path).parent.name
       one_hot = np.zeros((len(classes), 1))
       one_hot[classes[name]] = 1
-      labels[i, j] = one_hot
 
       file = Image.open(path)
-      resized = ImageOps.pad(file, img_dim, color="black",
+      resized = ImageOps.pad(file, (256, 256), color="black",
         centering=(0, 0), method=Image.Resampling.NEAREST)
-      arr = np.array(resized).astype(np.float32) / 255.0
-      imgs[i, j] = arr.T
+
+      # Augment the data by using randomly cropped sections of the image
+      for k in range(num_crops):
+        x, y = np.random.randint(29), np.random.randint(29)
+        crop = resized.crop((x, y, x + 227, y + 227))
+        arr = np.array(crop).astype(np.float32) / 255.0
+        imgs[i, j * num_crops + k] = arr.T
+        labels[i, j * num_crops + k] = one_hot
+
       file.close()
 
   return imgs, labels
+
 
 def expand(data, pad, dilation):
   output = data
@@ -79,8 +87,10 @@ def expand(data, pad, dilation):
 
   return output
 
+
 def average(data):
   return data.sum(axis=0) / data.shape[0]
+
 
 # Dimensions:
 # B = batch size, H = height, W = width, C = number of channels
@@ -95,6 +105,7 @@ def cnn_layer_shape(layer_shape, kernel_shape, stride, pad):
     int((layer_shape[-2] + 2 * pad - kernel_shape[-1]) / stride) + 1,
     int((layer_shape[-1] + 2 * pad - kernel_shape[-1]) / stride) + 1
   )
+
 
 def convolution(layer, kernel, stride, layer_pad,
                 layer_dilation, kernel_pad, kernel_dilation):
@@ -126,6 +137,7 @@ def convolution(layer, kernel, stride, layer_pad,
   # standard convolution: (B, C_o, H, W)
   return np.einsum("bihwyx,oiyx->bohw", regions, kernel)
 
+
 # See section 3.3 of the paper
 def local_response_normalization(conv_layer):
   b, channels, h, w = conv_layer.shape
@@ -138,6 +150,7 @@ def local_response_normalization(conv_layer):
 
   return normalized
 
+
 def initialize_params(shape, one_bias):
   # See section 5 of the paper
   rng = np.random.default_rng()
@@ -145,20 +158,26 @@ def initialize_params(shape, one_bias):
   bias = np.ones((shape[0], 1)) if one_bias else np.zeros((shape[0], 1))
   return weight, bias
 
+
 def softmax(data):
   e = np.exp(data - np.max(data))
   return e / np.sum(e)
 
+
 class Linear:
   def __init__(self, weights_shape, one_bias, dropout):
     self.weights, self.biases = initialize_params(weights_shape, one_bias)
-    self.dropout = dropout # TODO!
+    self.dropout = dropout
     self.data = None
     self.weights_gradient = None
     self.biases_gradient = None
 
-  def forward(self, prev_layer):
+  def forward(self, prev_layer, test=False):
     self.data = self.biases + self.weights @ prev_layer
+
+    if self.dropout:
+      mask = 0.5 if test else np.random.randint(2, size=self.data.shape)
+      self.data *= mask
 
   def backward(self, prev_layer, gradient):
     self.biases_gradient = np.sum(gradient, axis=0)
@@ -166,9 +185,9 @@ class Linear:
     self.weights_gradient = average(self.weights_gradient)
     return self.weights.T @ gradient
 
+
 class Convolutional:
   def __init__(self, weights_shape, stride, padding, one_bias, normalize):
-    # Note that each channel gets its own bias
     self.weights, self.biases = initialize_params(weights_shape, one_bias)
     self.stride = stride
     self.padding = padding
@@ -198,6 +217,7 @@ class Convolutional:
     if self.padding > 0: # Strip padding
       gradient = gradient[:, self.padding:-self.padding, self.padding:-self.padding]
     return gradient
+
 
 class Maxpool:
   def __init__(self, kernel_size, stride, flatten=False):
@@ -240,6 +260,7 @@ class Maxpool:
     gradient[b, c, h * self.S + i, w * self.S + j] = self.data
     return average(gradient) # Removes the batch dimension
 
+
 class ReLU:
   def __init__(self):
     self.data = None
@@ -256,11 +277,14 @@ classes = {
   "fear":  3, "happy":    4, "neutral": 5,
   "sad":   6, "shy":     7, "surprise": 8
 }
-epochs, num_batches, B = 1, 5, 5 # TOOD: batch size=128
+
+#epochs, num_batches, B, num_crops = 90, 128, 132, 5
+epochs, num_batches, B, num_crops = 1, 5, 5, 1
 learning_rate = 0.01
+num_layers = 8 # Excluding maxpool and relu layers
 
 imgs, labels = load_dataset(
-  "../data/fane/fane_data/", classes, (227, 227), num_batches + 1, B)
+  "../data/fane/fane_data/", classes, num_crops, num_batches + 1, B)
 train_imgs, train_labels = imgs[1:], labels[1:]
 test_imgs, test_labels = imgs[0], labels[0]
 
@@ -279,7 +303,6 @@ layer_info = [
   ((4096, 4096), True, True),
   ((9,    4096), True, False)
 ]
-num_layers = len(layer_info) # Excluding maxpool and relu layers
 
 layers = [
   Convolutional(*layer_info[0]), ReLU(), Maxpool(3, 2),
@@ -295,6 +318,7 @@ layers = [
 wmomentum = [np.zeros(layer_info[i][0]) for i in range(num_layers)]
 bmomentum = [np.zeros((layer_info[i][0][0], 1)) for i in range(num_layers)]
 
+# Train
 for epoch in range(epochs):
   for b in range(num_batches):
     print(f"Epoch {epoch + 1}, Batch {b + 1}/{num_batches}")
@@ -332,3 +356,21 @@ for epoch in range(epochs):
       bmomentum[j] = 0.9 * bmomentum[j] - learning_rate * bgradients[j]
       layers[i].biases += bmomentum[j]
 
+
+# Inference
+for i, layer in enumerate(layers):
+  prev_layer = test_imgs if i == 0 else layers[i - 1].data
+  layer.forward(prev_layer)
+
+# Average across all image crops
+output = softmax(layers[-1].data)
+num_images = output.shape[0] // num_crops
+output = output.reshape(num_images, num_crops, -1).mean(axis=1)
+
+max_idx = np.argmax(output, axis=1)
+one_hot = np.zeros((B, len(classes), 1))
+one_hot[np.arange(len(max_idx)), max_idx] = 1
+
+num_correct = (one_hot == test_labels).all(axis=1).sum()
+accuracy = 100 * num_correct / (batch_size * num_crops)
+print(f"Test accuracy: {accuracy}%")
