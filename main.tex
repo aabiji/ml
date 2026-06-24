@@ -187,13 +187,13 @@ For a 2D convolution on RGB images, a $C_i \times K \times K$ kernel is slid ove
   \[ h_{nyx} = a\left[\boldsymbol{\beta} + \sum_{c=1}^{C_i} \sum_{i=1}^{K} \sum_{j = 1}^{K} \omega_{cij} x_{c,i-m,j-m}\right] \]
 
 Weights are defined as $\boldsymbol{\Omega} \in \mathbb{R}^{C_o \times C_i \times K \times K}$ where $C_i$ is the number of channels in the previous layer, $C_o$ is the number of channels in the current layer and $K$ is the kernel size. Biases can be defined as $\boldsymbol{\beta} \in \mathbb{R}^{C_o}$. The output layer size is defined as the following where $N$ is the current layer size, $P$ is padding and $K$ is the kernel size and $S$ is the stride.
-\[ \frac{N + 2P - K}{S} + 1 \]
+\[ \left\lfloor \frac{N + 2P - K}{S} + 1 \right\rfloor \]
 
 There are different types of convolutions:
 \begin{itemize}
   \item \textbf{Strided convolution}: Refers to a convolution with a stride $> 1$. This downsamples the original input size. For example, with a stride of 2, there would be half as many outputs as there are inputs. There are other ways to downsample an image. Using max pooling/mean pooling reduces a 2x2 block of pixels down to the max value/mean value of the block.
   \item \textbf{Transposed convolution}: Refers to a convolution that uses the transpose of the weight matrix used in a strided convolution. This upsamples the original input size. For example, there would be twice as many outputs as there are inputs, and each input would correspond to two outputs. There are other ways to upsample an image. Using max unpooling or bilinear interpolation or duplicating the current value across a 2x2 block.
-  \item A \textbf{1x1 convolution} reduces the number of feature maps without reducing the number of spatial dimensions. A $C_o \times C_i \times 1 \times 1$ kernel is ran on the input layer, resulting in a $1 \times C_h \times C_w$ result for every output channel $C_o$. This improves computational efficiency and is equivalent to running a fully connected layer on the input channels at every position.
+  \item A \textbf{1x1 convolution} reduces the number of feature maps without reducing the number of spatial dimensions. A $C_o \times C_i \times 1 \times 1$ kernel is ran on the input layer, resulting in a $1 \times C_h \times C_w$ result for every output channel $C_o$. Since this mixes channels this also adds non linearity.
 \end{itemize}
 
 \end{document}
