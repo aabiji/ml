@@ -14,7 +14,7 @@ You Only Look Once: Detect and classify objects in a single pass of a convolutio
 - 7x7x30 model output. At test time after computing confidence scores there would be a 7x7x48 final output
   (x, y, w, h, confidence for each of the 20 classes) * 2
 
-- Architecture: 24 convolutional layers followed by 2 linear layers. Final layer uses a linear **activation function** and the rest of the layers use **leaky ReLU**.
+- Architecture: 24 convolutional layers followed by 2 linear layers. Final layer uses a linear activation function (input stays unchanged) and the rest of the layers use **leaky ReLU**.
 
 - Pretrain on the ImageNet 1000 class competition dataset (224 x 224 images), using the first 20 convolutional layers followed by an average pooling layer and a linear layer.
 
@@ -22,4 +22,13 @@ You Only Look Once: Detect and classify objects in a single pass of a convolutio
 
 Intersection over union (IOU) = Overlapping area of 2 bounding boxes / Combined area of 2 bounding boxes
                                 How well the predicted bounding box matches the ground truth.
+
+Loss function:
+- Ideally, both bounding boxes should be accurate, so the first term shouldn't be small and not matter much.
+  If one of the bounding boxes is less accurate than the other, it will consistute a larger fraction of the
+  term, which will make the first term affect the overall loss more, making that inaccurate bounding box
+  a higher priority than the other one.
+
+- Predicting the square roots of the bounding box's width and height to encode the fact that deviations in
+  large boxes matters less than in small boxes.
 
