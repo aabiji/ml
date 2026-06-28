@@ -1,8 +1,8 @@
 A repository of jupyter notebook exercises and notes for Understanding Deep Learning, as well as some small projects to apply what I've learnt so far.
 
 - Implement ResNet
-  - https://www.soccer-net.org/data
-  - bird songs mp3 (can convert to mel spectrograms myself)
+  - Train on ocean animals dataset
+- Scrape https://xeno-canto.org/contributor/WLJVXULMDF?pg=1&dir=0&order=dt
 - Implement Word2Vec
 
 # Ideas
@@ -34,11 +34,3 @@ A repository of jupyter notebook exercises and notes for Understanding Deep Lear
   - Add an env to PufferLib
 
   - Build a model to predict next period date from past period dates
-
-Setup:
-```bash
-sudo apt install okular latexmk
-
-# https://github.com/googlecolab/google-colab-cli
-pip install google-colab-cli
-```
