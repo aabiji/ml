@@ -10,6 +10,7 @@
 
 \section{Questions}
 \begin{itemize}
+\item A massive problem in deep learning now is that we don't have any clue how these neural networks actually work once trained.
 \item Are there efficient hyperparameter optimization algorithms?
 \item What are graph neural networks?
 \item Are there CNN architectures that don't require fixed input sizes?
@@ -195,5 +196,22 @@ There are different types of convolutions:
   \item \textbf{Transposed convolution}: Refers to a convolution that uses the transpose of the weight matrix used in a strided convolution. This upsamples the original input size. For example, there would be twice as many outputs as there are inputs, and each input would correspond to two outputs. There are other ways to upsample an image. Using max unpooling or bilinear interpolation or duplicating the current value across a 2x2 block.
   \item A \textbf{1x1 convolution} reduces the number of feature maps without reducing the number of spatial dimensions. A $C_o \times C_i \times 1 \times 1$ kernel is ran on the input layer, resulting in a $1 \times C_h \times C_w$ result for every output channel $C_o$. Since this mixes channels this also adds non linearity.
 \end{itemize}
+
+\section{Residual Networks}
+Deeper networks exhibit a degradation problem: the more layers are added, the higher
+the training/test error because the model's fitted function is more variable.
+
+A group of consecutive layers is referred to as a block. In the paper, the block is composed
+of 3 layers: 1x1 convolutions, 3x3 convolutions and 1x1 convolutions. Instead of hoping that
+the block will fit an underlying mapping $H(x)$, we make the block directly fit a residual
+mapping $F(x) = H(x) - x$, where the underlying mapping becomes $H(x) = F(x) + x$. $F(x)$
+is a layer output (linear combination, convolution, etc) and $+ x$ refers to adding the block
+input to the block output.
+
+The dimensions of $F(x)$ and $x$ must the same. If not, a linear projection of $x$ is used.
+The element wise addition of an input and output convolutional layer is done channel by channel.
+If the channel counts aren't the same, zero padding is used (adding no extra parameters) or 1x1
+convolutions are used (adding more paraemters). 1x1 convolutions produce better results. If the
+dimensions aren't the same, the element wise addition is done is a strided way to downsample the input.
 
 \end{document}

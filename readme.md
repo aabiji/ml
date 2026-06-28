@@ -1,10 +1,9 @@
 A repository of jupyter notebook exercises and notes for Understanding Deep Learning, as well as some small projects to apply what I've learnt so far.
 
-Plan:
+- Implement ResNet
+  - https://www.soccer-net.org/data
+  - bird songs mp3 (can convert to mel spectrograms myself)
 - Implement Word2Vec
-- Implement YOLO
-- Continue reading from textbook; chapter on residual networks
-- Implement ResNet on mel spectrograms (bird song classifier project)
 
 # Ideas
 - Implement papers:
