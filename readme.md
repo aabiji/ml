@@ -29,6 +29,8 @@ A repository of jupyter notebook exercises and notes for Understanding Deep Lear
     - [Whisper](https://arxiv.org/pdf/2212.04356)
 
 - Small projects:
+  - Move cursor on screen through gaze analysis
+
   - Real time pose estimation with YoloV8
 
   - Add an env to PufferLib

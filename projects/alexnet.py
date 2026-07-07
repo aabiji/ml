@@ -29,7 +29,7 @@ def load_dataset(outer_folder_path, classes, num_crops, num_batches, batch_size)
 
   total = batch_size * num_crops
   imgs = np.zeros((num_batches, total, 3, 227, 227))
-  labels = np.zeros((num_batches, batch_size, len(classes), 1))
+  labels = np.zeros((num_batches, total, len(classes), 1))
 
   for i in range(num_batches):
     for j in range(batch_size):
@@ -89,7 +89,7 @@ def expand(data, pad, dilation):
 
 
 def average(data):
-  return data.sum(axis=0) / data.shape[0]
+  return data.sum(axis=0) / data.shape[0] # Average values across a batch
 
 
 # Dimensions:
@@ -372,5 +372,5 @@ one_hot = np.zeros((B, len(classes), 1))
 one_hot[np.arange(len(max_idx)), max_idx] = 1
 
 num_correct = (one_hot == test_labels).all(axis=1).sum()
-accuracy = 100 * num_correct / (batch_size * num_crops)
+accuracy = 100 * num_correct / (B * num_crops)
 print(f"Test accuracy: {accuracy}%")

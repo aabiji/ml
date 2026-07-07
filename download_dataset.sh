@@ -9,7 +9,7 @@ kaggle_urls=(
 )
 
 if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 [iris|mnist|tiny-imagenet]"
+  echo "Usage: $0 <dataset-name>"
   exit 1
 fi
 
