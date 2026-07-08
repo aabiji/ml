@@ -8,16 +8,13 @@
 
 \begin{document}
 
-\section{Questions}
+\section{Interesting}
 \begin{itemize}
-\item A massive problem in deep learning now is that we don't have any clue how these neural networks actually work once trained.
+\item Why do neural networks work so well?
 \item Are there efficient hyperparameter optimization algorithms?
 \item What are graph neural networks?
 \item Are there CNN architectures that don't require fixed input sizes?
-\end{itemize}
-
-\section{Interesting}
-\begin{itemize}
+\item Can one visualize the parameter space of a model? What are the techniques for visualizing a high dimensional space in 3d?
 \item Distributed model training
 \item Reducing the memory requirements of a model during training
 \item Double descent
@@ -196,10 +193,27 @@ There are different types of convolutions:
   \item A \textbf{1x1 convolution} reduces the number of feature maps without reducing the number of spatial dimensions. A $C_o \times C_i \times 1 \times 1$ kernel is ran on the input layer, resulting in a $1 \times C_h \times C_w$ result for every output channel $C_o$. Since this mixes channels this also adds non linearity.
 \end{itemize}
 
+\section{Normalization}
+BatchNorm is a technique that helps optimize the training process. It consists of a layer with learnable parameters $\gamma$ and $\delta$, and running averages of the parameters. The layer first standardizes the input before applying the linear combination.
+The mean and the variance are summed across the batch dimension (linear dimension $m \times D \rightarrow D \times 1$, convolutional dimension $m \times C_i \times H \times W \rightarrow C_i$). During inference the batch size is 1, which makes the resulting variance = 0, breaking standardization. Instead of standardizing then applying a linear combination, only a linear combination with the rolling averages of the parameters is done.
+$m$ is the batch size, $\epsilon$ prevents division by 0.
+\[ \mu = \frac{1}{m} \sum_{i \in B} x_i \]
+\[ \sigma = \sqrt{\frac{1}{m} \sum_{i \in B} (x_i - \mu)^2 } \]
+\[ x = \frac{x - \mu}{\sigma + \epsilon} \]
+\[ y = \gamma x + \delta \]
+
+By standardizing, the input is constrained to a smaller range of values (centered around zero, variance of one). The learnable parameters enable the input to maintain an optimal and stable numerical scale. This smoothes the model's loss landscape and enables gradient descent to take larger and more reliable steps, helping deep networks train successfully.
+Because each normalized output depends on every other input, its gradient is more involved.
+\[ \frac{\partial l_i}{\partial x_i} = \frac{\gamma}{m \sigma} \left( m g_i -  \sum_{j} g_j - \hat{x_i} \sum_{j} g_j \hat{x_j} \right) \]
+$g_i$ is the global gradient for a specific activation $i$, $\hat{x_i}$ is the normalized activation.
+
+LayerNorm is another normalization technique that does the same thing as BatchNorm, except the mean and the variance are summed across the layer dimension (linear dimension $m \times D \rightarrow m \times 1$, convolutional dimension $m \times C_i \times H \times W \rightarrow m$).
+This changes the statistics used to normalize. Instead of normalizing a feature across multiple samples, a feature is normalized across the layer's own internal representation. LayerNorm is mostly used in RNNs and Transformers while BatchNorm is used in CNNs.
+
 \section{Residual networks}
 Training deeper and deeper networks unexpectedly results in poorer performance. One possible reason for this is that the deeper the network, the less smooth its loss landscape is, which means that the gradient doesn't remain similar between steps. Additionally, small changes in earlier layers results in large and unpredictable changes in later layers.
 
-A residual network comprises of a series of residual blocks. A residual block is a set of layers that ends in a residual connection, which is just adding the output of the previous block to the output of the current block. In a residual block, ReLU comes before the linear combination, in order to preserve the gradient of the residual block (except in the first residual block in order to preserve negative values in the input). (p. 191, figure 11.6)
+A residual network comprises of a series of residual blocks. A residual block is a set of layers that ends in a residual connection, which is just adding the output of the previous block to the output of the current block. In a residual block, BatchNorm is applied first to normalize the inputs. ReLU comes before the linear combination, in order to preserve the gradient of the residual block (except in the first residual block in order to preserve negative values in the input). (p. 191, figure 11.6)
 \[ h_k = h_{k - 1} + f[x, \phi] \]
 The residual network can be thought of an ensemble of smaller subnetworks summed together. It can also be thought of as a computational graph where each layer (input included) takes several different paths of varying length to the output. (p. 190)
 
