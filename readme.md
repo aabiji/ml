@@ -2,11 +2,17 @@ A repository of jupyter notebook exercises and notes for Understanding Deep Lear
 
 - Implement ResNet
   - Train on ocean animals dataset
+  - From scratch in numpy (want to linear, convolutional, residual layers in a more concise way)
+  - Using pytorch
+  - Test final model on real dataset using google and graph results in real time
 - Scrape https://xeno-canto.org/contributor/WLJVXULMDF?pg=1&dir=0&order=dt
 - Implement Word2Vec
 
 # Ideas
 - Implement papers:
+  - U-Net for image segmentation
+    https://www.comet.com/site/blog/deep-learning-for-image-segmentation-u-net-architecture/ 
+
   - Gaussian splatting
     - [3D Gaussian Splatting for Real-Time Radiance Field Rendering](https://arxiv.org/pdf/2308.04079)
 

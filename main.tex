@@ -196,4 +196,11 @@ There are different types of convolutions:
   \item A \textbf{1x1 convolution} reduces the number of feature maps without reducing the number of spatial dimensions. A $C_o \times C_i \times 1 \times 1$ kernel is ran on the input layer, resulting in a $1 \times C_h \times C_w$ result for every output channel $C_o$. Since this mixes channels this also adds non linearity.
 \end{itemize}
 
+\section{Residual networks}
+Training deeper and deeper networks unexpectedly results in poorer performance. One possible reason for this is that the deeper the network, the less smooth its loss landscape is, which means that the gradient doesn't remain similar between steps. Additionally, small changes in earlier layers results in large and unpredictable changes in later layers.
+
+A residual network comprises of a series of residual blocks. A residual block is a set of layers that ends in a residual connection, which is just adding the output of the previous block to the output of the current block. In a residual block, ReLU comes before the linear combination, in order to preserve the gradient of the residual block (except in the first residual block in order to preserve negative values in the input). (p. 191, figure 11.6)
+\[ h_k = h_{k - 1} + f[x, \phi] \]
+The residual network can be thought of an ensemble of smaller subnetworks summed together. It can also be thought of as a computational graph where each layer (input included) takes several different paths of varying length to the output. (p. 190)
+
 \end{document}
