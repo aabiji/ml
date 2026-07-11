@@ -196,7 +196,7 @@ There are different types of convolutions:
 \section{Normalization}
 BatchNorm is a technique that helps optimize the training process. It consists of a layer with learnable parameters $\gamma$ and $\delta$, and running averages of the parameters. The layer first standardizes the input before applying the linear combination.
 The mean and the variance are summed across the batch dimension (linear dimension $m \times D \rightarrow D \times 1$, convolutional dimension $m \times C_i \times H \times W \rightarrow C_i$). During inference the batch size is 1, which makes the resulting variance = 0, breaking standardization. Instead of standardizing then applying a linear combination, only a linear combination with the rolling averages of the parameters is done.
-$m$ is the batch size, $\epsilon$ prevents division by 0.
+The dimensions of $\gamma$ and $\delta$ in a linear layer is $D \times 1$ and in a convolutional layer is $C_i \times 1$. $m$ is the batch size, $\epsilon$ prevents division by 0.
 \[ \mu = \frac{1}{m} \sum_{i \in B} x_i \]
 \[ \sigma = \sqrt{\frac{1}{m} \sum_{i \in B} (x_i - \mu)^2 } \]
 \[ x = \frac{x - \mu}{\sigma + \epsilon} \]
