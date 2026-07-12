@@ -1,23 +1,17 @@
 A repository of jupyter notebook exercises and notes for Understanding Deep Learning, as well as some small projects to apply what I've learnt so far.
 
-- Implement ResNet
-  - Train on ocean animals dataset
-  - From scratch in numpy (want to linear, convolutional, residual layers in a more concise way)
-  - Using pytorch
-  - Test final model on real dataset using google and graph results in real time
-- Scrape https://xeno-canto.org/contributor/WLJVXULMDF?pg=1&dir=0&order=dt
-- Implement Word2Vec
-
 # Ideas
 - Small projects:
   - Move cursor on screen through gaze analysis
     - Write a blog article on how I did it
 
-  - Real time pose estimation with YoloV8
+  - Real time pose estimation with custom BlazePose implementation
 
   - Add an env to PufferLib
 
   - Build a model to predict next period date from past period dates
+
+  - Automatic differentiation engine like Pytorch
 
 - Implement papers:
   - U-Net for image segmentation

@@ -11,14 +11,14 @@
 \section{Interesting}
 \begin{itemize}
 \item Why do neural networks work so well?
-\item Are there efficient hyperparameter optimization algorithms?
+\item Are there efficient algorithms for searching for optimal hyperparameters?
 \item What are graph neural networks?
 \item Are there CNN architectures that don't require fixed input sizes?
 \item Can one visualize the parameter space of a model? What are the techniques for visualizing a high dimensional space in 3d?
 \item Distributed model training
 \item Reducing the memory requirements of a model during training
 \item Double descent
-\item The intuition behind why different techniques work so well?
+\item Mathematical intuition behind why different techniques work so well?
 \end{itemize}
 
 \section{Math concepts}
@@ -126,7 +126,7 @@ Backpropagation is different for \href{https://deeplearning.cs.cmu.edu/F21/docum
 The goal of an optimization algorithm is to update the model's parameters as to minimize the loss. This process is known as learning, training or fitting.
 
 \begin{itemize}
-\item \textbf{Gradient descent:} Gradients are the partial derivatives of the loss function with respect to the model parameters. $\alpha$ is the learning rate, which is a hyperparameter that controls how quickly the parameters change. A learning rate scheduler like StepLR is often used ($\gamma$ is a decay multiplier). The problem with gradient descent is that there's no way of knowing whether the model will converge on a global minimum or a local minimum, or get stuck in a saddle point (flat area of the function) especially when the model function is non-convex.
+\item \textbf{Gradient descent:} Gradients are the partial derivatives of the loss function with respect to the model parameters. $\alpha$ is the learning rate, which is a hyperparameter that controls how quickly the parameters change. A \href{https://machinelearningmastery.com/a-gentle-introduction-to-learning-rate-schedulers/}{learning rate} scheduler like StepLR is often used ($\gamma$ is a decay multiplier). The problem with gradient descent is that there's no way of knowing whether the model will converge on a global minimum or a local minimum, or get stuck in a saddle point (flat area of the function) especially when the model function is non-convex.
 \[ \alpha_t = \alpha_0 * \gamma^{\frac{\text{epochs}}{\text{step\_size}}} \]
 \[ \boldsymbol{\hat{\phi}} = \boldsymbol{\phi} - \alpha\frac{\partial L}{\partial \boldsymbol{\phi}} \]
 
@@ -164,7 +164,7 @@ The following are ways to improve model performance. Note that these aren't silv
   \item \textbf{Dropout}: During training, clamp a random subset of hidden units (typically half) to zero. This helps the model reduce its reliance on any given hidden unit and encourages the weights to be smaller so that the output fluctuates less wildly when hidden units are turned off. During inference, all hidden units are active, so weights are multiplied by $1 - \eta$, where $\eta$ is the dropout probability (weight scaling inference rule). One can also do Monte Carlo dropout instead, where you run inference on the model multiple times with random subsets of the hidden units clipped, and then combine results.
   \item \textbf{Apply noise} to:
   \begin{itemize}
-    \item Inputs: Generate different variations of the input data (add synonyms to text, blur images, filter audio, etc) in order to teach the model to be indifferent to irrelevant data transformations (Data augmentation). Makes the model fit to more variable samples, improving test performance.
+    \item Inputs: Generate \href{https://arxiv.org/html/2502.18691v1}{different variations of the input data} in order to teach the model to be indifferent to irrelevant data transformations. These are referred to as data augmentation and the augmentation techniques are applied per each minibatch on the fly. Makes the model fit to more variable samples, improving test performance.
     \item Weights: Makes the training converge to a local minima inside of a flat middle region, where changing the weights doesn't affect the output much. The model becomes less particular about specific weight values.
     \item Labels: Makes the model stop chasing absolute certainty. Label smoothing refers to changing the loss function to minimize the cross-entropy between the predicted and actual distribution (Where the true label has a probability $1-\rho$ and all the other classes have equal probability. $\rho$ is the proportion of the training labels that are assumed incorrect.).
   \end{itemize}
@@ -215,6 +215,7 @@ This changes the statistics used to normalize. Instead of normalizing a feature 
 Training deeper and deeper networks unexpectedly results in poorer performance. One possible reason for this is that the deeper the network, the less smooth its loss landscape is, which means that the gradient doesn't remain similar between steps. In a deep network, small changes in the input result in wildly different gradients (shattered gradients problem). Additionally, small changes in earlier layers results in large and unpredictable changes in later layers.
 
 A residual network comprises of a series of residual blocks. A residual block is a set of layers that ends in a residual connection, which is just adding the output of the previous block to the output of the current block. In a residual block, BatchNorm is applied first to normalize the inputs. ReLU comes before the linear combination, in order to preserve the gradient of the residual block (except in the first residual block in order to preserve negative values in the input). (p. 191, figure 11.6). Each block comprised of the following layers in the original paper: BatchNorm, ReLU, Convolution, BatchNorm, ReLU, Convolution.
+Often, the block input size will not match the block output size. In such cases, a projection (1x1 convolution with a stride chosen to downsample/upsample the input) is used. The projection is also normalized with a corresponding BatchNorm layer.
 \[ h_k = h_{k - 1} + f[x, \phi] \]
 The residual network can be thought of an ensemble of smaller subnetworks summed together. It can also be thought of as a computational graph where each layer (input included) takes several different paths of varying length to the output. (p. 190)
 
