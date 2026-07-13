@@ -14,6 +14,8 @@
 - Will transferring the weights of the same model architecture trained on a vegetation dataset (or just imagenet) improve accuracy and decrease the training time?
 - ...
 
+---
+
 Resnet architecture in the paper:
 Convolution on 3x32x32 input, 16x3x3 kernel
 
@@ -33,3 +35,25 @@ ReLU
 Convolution
 Residual
 * Projection = 1x1 convolution with a stride of 2 (second and third block) applied to input
+
+---
+
+U-Net architecture:
+
+A U-Net is split into an encoder and a decoder, which are mirrored. Layers in the encoder halve spatial dimensions while doubling feature sizes.
+With larger receptive fields, increasingly abstract semantic representations of the data can be learned at the cost of sacrificing localization
+precision. Layers in the decoder double spatial dimensions while halving feature sizes. This allows the network to localize the semantic
+reprsentation at increasingly larger spatial dimensions. Corresponding layers in the encoder are cropped and concatenated to the upsampled layers
+in the decoder in order to reintroduce most of the fine spatial information that was preserved in the encoder. Subsequent convolutions learn how
+the fine spatial information and the coarse semantic information can be combined effectively. The concatenation also gives layer inputs multiple
+shorter paths to reach the output, helping information flow through the network. All of these design decisions result in the encoder learning
+what is in the data and the decoder learning where it is spatially.
+
+The final layer uses a 1x1 convolution to map the 64 output channels to the target number of labels. Softmax is applied per pixel (summing across channels),
+and per pixel cross entropy loss is used. It's a weighted sum of the weight map times the softmax value at each pixel position (channel = actual label) over the
+feature map.
+
+??
+- Overlap-tile strategy -> could this be related to the fact that U-Net's output is smaller than its input?
+- Semantic deformation
+

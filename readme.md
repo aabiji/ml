@@ -11,17 +11,22 @@ A repository of jupyter notebook exercises and notes for Understanding Deep Lear
 
   - Build a model to predict next period date from past period dates
 
-  - Automatic differentiation engine like Pytorch
+  - Model that recommends which movies and books to read
+
+  - Automatic differentiation engine like Pytorch or fix a bug in tinygrad.
+
+  - Model that takes live driving footage from Waymo's dataset and builds a map of the city roads in real time (SLAM?)
 
 - Implement papers:
-  - U-Net for image segmentation
-    https://www.comet.com/site/blog/deep-learning-for-image-segmentation-u-net-architecture/
-
-  - Gaussian splatting
-    - [3D Gaussian Splatting for Real-Time Radiance Field Rendering](https://arxiv.org/pdf/2308.04079)
+  - Something interesting from [here](https://theaisummer.com/)
 
   - Attention Is All You Need
     - Implement multi-head attention, positional encoding, encoder, decoder.
+
+  - [Variational autoencoders](https://arxiv.org/pdf/1906.02691)
+
+  - Gaussian splatting
+    - [3D Gaussian Splatting for Real-Time Radiance Field Rendering](https://arxiv.org/pdf/2308.04079)
 
   - CLIP
     - Learn multimodel learning, contrastive learning, embeddings, zero-shot classification.
@@ -29,7 +34,11 @@ A repository of jupyter notebook exercises and notes for Understanding Deep Lear
   - SegFormer
     - Learn segmentation and dense prediction.
 
+  - [Stable diffusion](https://ommer-lab.com/research/latent-diffusion-models/)
+
   - Speech to text and text to speech
     - [Tacotron](https://arxiv.org/pdf/1703.10135)
     - [Whisper](https://arxiv.org/pdf/2212.04356)
+
+  - [AlphaZero](https://arxiv.org/pdf/1712.01815)
 
