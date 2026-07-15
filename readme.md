@@ -1,5 +1,3 @@
-A repository of jupyter notebook exercises and notes for Understanding Deep Learning, as well as some small projects to apply what I've learnt so far.
-
 # Ideas
 - Small projects:
   - Move cursor on screen through gaze analysis
@@ -7,7 +5,7 @@ A repository of jupyter notebook exercises and notes for Understanding Deep Lear
 
   - Real time pose estimation with custom BlazePose implementation
 
-  - Add an env to PufferLib
+  - [Learn RL](https://x.com/jsuarez/status/1854855861295849793) and add an [env](https://x.com/jsuarez/status/1943692998975402064) to pufferlib
 
   - Build a model to predict next period date from past period dates
 

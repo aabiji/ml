@@ -7,34 +7,21 @@
 
 - [ ] Train U-Net on plant phenotyping datasets and answer the following questions.
 [Crop/Weed Field Image Dataset](https://datasetninja.com/cwfid#download)
-- How much data does U-Net need?
+- U-Net uses valid convolutions as to not introduce any extra information. However, this makes the model's output size
+  much smaller than its input size. What if we used padded convolutions to preserve the data dimensions? How much would
+  that degrade model performance? Perhaps it's possible to add a correcting term to the loss function in order to
+  compensate for the added information and maintain similarly high levels of accuracy?
+
+- How much noise or variability does the decoder introduce into the output segmentation map? Information is lost when
+  layers from the encoder are cropped and concatenated to layers in the decoder. So, how much does the output segmentation
+  map ressemble the input image? Can there ever be a situation where the segmentation map looks nothing like the input image?
+
+- How many training samples does U-Net really need, with or without data augmentation?
+
+- How much of an effect does data augmentation actually have on model performance?
 - Which normalization scheme works best (Batchnorm, GroupNprm, InstanceNorm, etc)?
 - Which learning rate scheduler works best (StepLR, CosineAnnealingLR, ExponentialLR, etc)?
-- How much of an effect does data augmentation actually have on model performance?
-- Will transferring the weights of the same model architecture trained on a vegetation dataset (or just imagenet) improve accuracy and decrease the training time?
 - ...
-
----
-
-Resnet architecture in the paper:
-Convolution on 3x32x32 input, 16x3x3 kernel
-
-2 blocks (in = 16x32x32, out = 16x32x32), 16x3x3 kernel, padding = 1, stride = 1
-2 blocks (in = 16x32x32, out = 32x16x16), 32x3x3 kernel, padding = 1, stride = 2, 1
-2 blocks (in = 32x16x16, out =   64x8x8), 64x3x3 kernel, padding = 1, stride = 2, 1
-
-Global average pooling (64x8x8 -> 64x1)
-10 activation linear + softmax
-
-Each block:
-Batchnorm
-ReLU
-Convolution
-Batchnorm
-ReLU
-Convolution
-Residual
-* Projection = 1x1 convolution with a stride of 2 (second and third block) applied to input
 
 ---
 
@@ -49,9 +36,13 @@ the fine spatial information and the coarse semantic information can be combined
 shorter paths to reach the output, helping information flow through the network. All of these design decisions result in the encoder learning
 what is in the data and the decoder learning where it is spatially.
 
-The final layer uses a 1x1 convolution to map the 64 output channels to the target number of labels. Softmax is applied per pixel (summing across channels),
-and per pixel cross entropy loss is used. It's a weighted sum of the weight map times the softmax value at each pixel position (channel = actual label) over the
-feature map.
+Each label corresponds to its own channel, so the final layer in the model uses a 1x1 convolution to map the 64 output channels to the target
+number of channels. Softmax is applied per pixel, summing across channels. Cross entropy loss is used as the loss function. Each pixel is
+chosen from the channel that coressponds to the pixel's true label.
+
+\[ E = \sum_{x \in \Omega} w(\mathbf{x}) log(p_{l(x)}(\mathbf(x))) \]
+
+https://en.wikipedia.org/wiki/Normal_distribution
 
 ??
 - Overlap-tile strategy -> could this be related to the fact that U-Net's output is smaller than its input?
