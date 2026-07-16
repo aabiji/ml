@@ -20,6 +20,7 @@
 \item Double descent
 \item Mathematical intuition behind why different techniques work so well?
 \item Does local minima become rarer in higher dimensional space? If so, why is SGD effective if its main selling point is using a random walk to avoid local minima?
+\item 3D classification models
 \end{itemize}
 
 \section{Math concepts}
@@ -90,6 +91,9 @@ The following are a few common loss functions.
 
 \item \textbf{Cross entropy loss} is used in classification tasks, when the output follows a categorical distribution. A categorical distribution is a distribution where the probability of each class is $\lambda_k \in [0, 1]$ and $\sum_{K} \lambda_k = 1$. To ensure that the model output follows a categorical distribution, softmax is applied. $y$ is the true class, $\hat{y_i}$ is the predicted class.
 \[ L[\phi] = -\sum_{i = 1}^{I}\sum_{k=1}^{K} y_i \log(\hat{y_i}) \]
+
+\item \textbf{Dice loss} is often used with U-Net models. It's how many values are in both samples $P$ and $Q$ divded by the total number of samples in $P$ and $Q$.
+\[ \frac{|P \cup Q|}{|P| + |Q|} \]
 
 \item When the model's output is multivariate, each output and each error are treated as independent. The model's loss function becomes a sum of all the loss functions for each output. See the chart on p. 70 of textbook for more.
 \end{itemize}

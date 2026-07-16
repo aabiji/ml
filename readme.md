@@ -5,6 +5,8 @@
 
   - Real time pose estimation with custom BlazePose implementation
 
+  - Real time facial expression classification
+
   - [Learn RL](https://x.com/jsuarez/status/1854855861295849793) and add an [env](https://x.com/jsuarez/status/1943692998975402064) to pufferlib
 
   - Build a model to predict next period date from past period dates
@@ -14,6 +16,8 @@
   - Automatic differentiation engine like Pytorch or fix a bug in tinygrad.
 
   - Model that takes live driving footage from Waymo's dataset and builds a map of the city roads in real time (SLAM?)
+
+  - RL for noise cancellation 
 
 - Implement papers:
   - Something interesting from [here](https://theaisummer.com/)
