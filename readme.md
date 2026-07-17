@@ -1,9 +1,12 @@
 # Ideas
 - Small projects:
+  - Implement Dice Loss and train a U-Net that uses it
+
   - Move cursor on screen through gaze analysis
     - Write a blog article on how I did it
 
   - Real time pose estimation with custom BlazePose implementation
+    - Write a blog article on how I did it
 
   - Real time facial expression classification
 
@@ -17,7 +20,9 @@
 
   - Model that takes live driving footage from Waymo's dataset and builds a map of the city roads in real time (SLAM?)
 
-  - RL for noise cancellation 
+  - RL for noise cancellation
+
+  - Contribute to Pytorch
 
 - Implement papers:
   - Something interesting from [here](https://theaisummer.com/)

@@ -2,9 +2,71 @@ import torch
 import torch.nn as nn
 from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
+import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import math
-import datasets, utils
+from IPython.display import clear_output
+from IPython import display
+import datasets
+
+
+def random_pad_crop(img_batch, pad, flip_percentage):
+    padded = F.pad(img_batch, (pad, pad, pad, pad), mode="constant", value=0)
+
+    img_size = (img_batch.shape[-2], img_batch.shape[-1])
+    padded_size = (padded.shape[-2], padded.shape[-1])
+
+    for sample in range(img_batch.shape[0]):
+        xy = (
+            torch.randint(padded_size[0] - img_size[0], ()).item(),
+            torch.randint(padded_size[1] - img_size[1], ()).item())
+
+        img_batch[sample] = padded[sample, :, xy[0]:xy[0]+img_size[0], xy[1]:xy[1]+img_size[1]]
+
+        flip = torch.randint(100, ()).item() < (100 * flip_percentage)
+        if flip:
+            img_batch[sample] = torch.flip(img_batch[sample], dims=[2])
+
+
+def random_cutout(img_batch, percentage, num_cuts, cut_size):
+    img_size = (img_batch.shape[-2], img_batch.shape[-1])
+
+    for sample in range(img_batch.shape[0]):
+        cutout = torch.randint(100, ()).item() < (100 * percentage)
+        if not cutout:
+            continue
+
+        for _ in range(num_cuts):
+            xy = (
+                torch.randint(img_size[0] - cut_size, ()).item(),
+                torch.randint(img_size[1] - cut_size, ()).item())
+            img_batch[sample, :, xy[0]:xy[0]+cut_size, xy[1]:xy[1]+cut_size] = 0.0
+
+
+def classification_error(prediction, actual):
+    probabilities = torch.softmax(prediction, dim=1)
+    answer = torch.argmax(probabilities, dim=1)
+    num_correct = (answer == actual).sum().item()
+    batch_size = answer.shape[0]
+    return 100 * (batch_size - num_correct) / batch_size
+
+
+def plot_stats(fig, ax, title, errors=None, losses=None):
+    clear_output(wait=True)
+    ax.clear()
+
+    if losses is not None:
+        ax.plot(losses, "b-", label=f"Loss {losses[-1]:.3f}")
+
+    if errors is not None:
+        ax.plot(errors, "r-", label=f"Error {errors[-1]:.2f}%")
+
+    ax.autoscale_view(scalex=True, scaley=True)
+    ax.set_title(title)
+    ax.set_xlabel("Iterations")
+    ax.set_ylabel("Stats")
+    plt.legend()
+    display.display(fig)
 
 
 def init_layer(layer):
@@ -135,13 +197,13 @@ for epoch in range(epochs):
         for j in range(0, batch_size, minibatch_size):
             idx = random_indexes[j:j+minibatch_size]
             imgs, labels = all_imgs[idx].clone(), all_labels[idx].clone()
-            utils.random_pad_crop(imgs, 4, 0.5)
-            utils.random_cutout(imgs, 0.5, 3, 3)
+            random_pad_crop(imgs, 4, 0.5)
+            random_cutout(imgs, 0.5, 3, 3)
 
             prediction = model(imgs)
             loss = criterion(prediction, labels)
             total_loss += loss.item()
-            total_error += utils.classification_error(prediction, labels)
+            total_error += classification_error(prediction, labels)
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
@@ -151,7 +213,7 @@ for epoch in range(epochs):
         losses.append(total_loss / minibatch_iters)
         errors.append(total_error / minibatch_iters)
 
-        utils.plot_stats(fig, ax, "Training stats", errors=errors, losses=losses)
+        plot_stats(fig, ax, "Training stats", errors=errors, losses=losses)
         print(f"Epoch {epoch+1}/{epochs}, Batch: {i+1}/5, LR: {scheduler.get_last_lr()[0]:.3f}")
 
     scheduler.step()
@@ -163,6 +225,6 @@ for j in range(0, batch_size, minibatch_size):
     all_imgs, all_labels = test_batch
     imgs, labels = all_imgs[j:j+minibatch_size], all_labels[j:j+minibatch_size]
     prediction = model(imgs)
-    total_error += utils.classification_error(prediction, labels)
+    total_error += classification_error(prediction, labels)
 
 print(f"Mean test error: {(total_error / minibatch_size):.3f}%")
