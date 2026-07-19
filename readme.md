@@ -1,3 +1,10 @@
+Read:
+- [ ] Recurrent Neural Networks (RNNs): A gentle Introduction and Overview
+- [ ] Sequence to Sequence Learning with Neural Networks
+- [ ] Nueral machine translation by jointly learning to align and translate
+- [ ] Effective Approaches to Attention-based Neural Machine Translation
+- [ ] Attention Is All You Need
+
 # Ideas
 - Small projects:
   - Implement Dice Loss and train a U-Net that uses it
@@ -23,6 +30,8 @@
   - RL for noise cancellation
 
   - Contribute to Pytorch
+
+  - Kaggle competitions
 
 - Implement papers:
   - Something interesting from [here](https://theaisummer.com/)

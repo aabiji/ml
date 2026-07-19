@@ -50,9 +50,11 @@ The softmax function maps a vector of real values (logits) $\mathbf{z}$ to a vec
 Suppose a transformation $t[x]$ is applied on a function $f[x]$. The function is \textbf{invariant} if $f[t[x]] = f[x]$ and is \textbf{equivariant} if $f[t[x]] = t[f[x]]$.
 
 \section{Neural network basics}
-A model is a mathematical function defined by parameters that maps an input to an output. There are discriminative models and generative models. Discriminative models find outputs from inputs, while generative models find inputs from outputs. Most models are discriminative since it's easier to exploit the prior knowledge that's baked into the input data. Generative models have much higher losses than discriminative models, and seem to perform worse on the demo examples. Trying to capture all of the nuance that goes into generating a specific output really is so much harder than mapping an input to an output.
+A model is a mathematical function defined by parameters that maps an input to an output. There are discriminative models and generative models. Discriminative models find outputs from inputs, while generative models find inputs from outputs. Discriminative models exhibit \href{https://en.wikipedia.org/wiki/Transduction_(machine_learning)}{transductive} reasoning, mapping specific inputs to specific outputs. Generative models exhibit inductive reasoning, mapping specific inputs to generalized rules. Most models are discriminative since it's easier to exploit the prior knowledge that's baked into the input data.
 
-Using an activation function allows a model to represent non linear functions. The activation function has to be non linear in order to be effective. A common activation function is ReLU (Rectified Linear Unit). If the value is $\le 0$, the output is 0, else it's the value, which clamps negative numbers.
+Using a non linear activation function allows a model to represent non linear functions. A saturated activation function is one where its derivative approaches zero when the magnitude of its output becomes very large (very positive or very negative). Using a saturated activation function would hamper training as gradients approach zero in deeper and deeper layers (vanishing gradient problem). A common activation function that is non saturated is ReLU (Rectified Linear Unit) and Leaky ReLU. ReLU makes the activations in a layer sparse, while leaky ReLU preserves a small gradient for negative activations, which prevents those activations from dying.
+\[ \text{ReLU}(x) = \begin{cases} x & \text{if } x \geq 0 \\ 0 & \text{if } x < 0 \end{cases} \]
+\[ \text{Leaky ReLU}(x) = \begin{cases} x & \text{if } x \geq 0 \\ \alpha x & \text{if } x < 0 \end{cases} \]
 
 Network capacity is the model's ability approximate different functions. The network capacity is defined as the number of parameters, the number of layers (depth), the number of hidden units in each layer, etc. The theoretical capacity is called the representational capacity, while the actual number of functions that the model can approximate is called the effective capacity. With enough capacity (hidden units), the network can approximate any function at a given resolution (Universal approximation theorem).
 
@@ -225,5 +227,38 @@ Often, the block input size will not match the block output size. In such cases,
 The residual network can be thought of an ensemble of smaller subnetworks summed together. It can also be thought of as a computational graph where each layer (input included) takes several different paths of varying length to the output. (p. 190)
 
 Architectures using residual connections includes ResNet, DenseNet, \href{https://openaccess.thecvf.com/content/WACV2021/papers/Zhang_ResNet_or_DenseNet_Introducing_Dense_Shortcuts_to_ResNet_WACV_2021_paper.pdf}{Dense shortcuts for ResNet}, U-Net.
+
+\section{Reccurent Neural Networks}
+Reccurent Neural Networks are models designed for processing sequences of data. Depending on how it's designed, an RNN can predict a sequence from a sequence, a sequence from a value or a value from a sequence. Here, sequence to sequence prediction will be used to \href{https://www.mdpi.com/information/information-15-00517/article_deploy/html/images/information-15-00517-g001-550.jpg}{explain how RNNs work}.
+An RNN is composed of hidden blocks $h_t$ which output a symbol $o_t$ in the output sequence given an input sequence symbol $x_t$ and a running sum of the previous hidden blocks $h_{t - 1}$. $t$ represents the position of a symbol in the sequence. Each hidden block is defined as $(1)$ and each output is defined as $(2)$, where $a_h$ and $a_o$ are the activation functions for the hidden blocks and the output, $b_h$ and $b_o$ are the biases for the hidden blocks and the output, $W_x$ is the input weight, $W_h$ is the hidden-state-to-hidden-state weight and $W_o$ is the output weight.
+\[ h_t = a_h(W_x x_t + b_h + W_h h_{t - 1}) \tag{1} \]
+\[ o_t = a_o(W_o h_t + b_o)) \tag{2} \]
+$W_x$, $W_h$ and $W_o$ are shared by all the hidden blocks in the network. Thus, an RNN can be thought of as the same shallow network that remembers a window of past symbols, reused repeatedly on each symbol in the input sequence,
+
+Backpropagation through time (BPTT) is an adaptation of the backpropagation algorithm for RNNs. The main difference is that the derivative of the loss with respect to $W_x$, $W_o$ and $W_h$ must be computed considering each symbol in the input sequence.
+The jump made at $(*)$, is because $\frac{\partial h_t}{\partial a_h}$ recursively depends on previous hidden blocks. As $t - k$ increases, $W_k^{\top}$ becomes increasingly larger and numerically unstable. So, $t - k \le c$, where $c$ is the window size, the upper bound on the number of symbols the RNN remembers at once.
+
+\begin{align*}
+\frac{\partial L(o, y)}{\partial W_o}
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial W_o} \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} \frac{\partial a_o}{\partial W_o} \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} h_t \\
+\end{align*}
+
+\begin{align*}
+\frac{\partial L(o, y)}{\partial W_x}
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial W_o} \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} \frac{\partial a_o}{\partial h_t} \frac{\partial h_t}{\partial a_h} \frac{\partial a_h}{\partial W_x} \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \frac{\partial h_t}{\partial a_h} x_t \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \sum_{k=1}^{t} (W_k^{\top})^{t - k} x_k \tag{*}
+\end{align*}
+
+\begin{align*}
+\frac{\partial L(o, y)}{\partial W_h}
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial W_o} \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} \frac{\partial a_o}{\partial h_t} \frac{\partial h_t}{\partial a_h} \frac{\partial a_h}{\partial W_x} \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \frac{\partial h_t}{\partial a_h} h_{t - 1} \\
+&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \sum_{k=1}^{t} (W_k^{\top})^{t - k} h_k \tag{*}
+\end{align*}
 
 \end{document}
