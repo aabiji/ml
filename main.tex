@@ -21,6 +21,8 @@
 \item Mathematical intuition behind why different techniques work so well?
 \item Does local minima become rarer in higher dimensional space? If so, why is SGD effective if its main selling point is using a random walk to avoid local minima?
 \item 3D classification models
+\item \href{https://suzyahyah.github.io/machine%20learning/2026/06/27/trouble-with-time-series.html}{The Unreasonable Difficulty of Time Series Forecasting}
+\item Robot that's general enough to work at a fast food restaurant (ex: Tim Hortons team member)
 \end{itemize}
 
 \section{Math concepts}
@@ -49,6 +51,8 @@ The softmax function maps a vector of real values (logits) $\mathbf{z}$ to a vec
 
 Suppose a transformation $t[x]$ is applied on a function $f[x]$. The function is \textbf{invariant} if $f[t[x]] = f[x]$ and is \textbf{equivariant} if $f[t[x]] = t[f[x]]$.
 
+The mean of a distribution is it's balancing point. The summed distance of all the values on the left of the mean and all the values on the right of the mean will cancel out. Can think of the distribution as a weight scale, where the mean is the pivot. Expectation is the mean. It's defined as the weighted sum of each value in the distribution by the probability (can think of it from a frequentist point of view) of that value.
+
 \section{Neural network basics}
 A model is a mathematical function defined by parameters that maps an input to an output. There are discriminative models and generative models. Discriminative models find outputs from inputs, while generative models find inputs from outputs. Discriminative models exhibit \href{https://en.wikipedia.org/wiki/Transduction_(machine_learning)}{transductive} reasoning, mapping specific inputs to specific outputs. Generative models exhibit inductive reasoning, mapping specific inputs to generalized rules. Most models are discriminative since it's easier to exploit the prior knowledge that's baked into the input data.
 
@@ -69,7 +73,7 @@ There are three main sources of error when training a model: The extent to which
 
 As model capacity increases, test error should decrease up until the point where variance becomes too large and the model starts to overfit, making the test error increase. However, for many datasets, the test error starts decreasing again as the model capacity continues to increase. This is referred to as \href{https://www.lesswrong.com/posts/FRv7ryoqtvSuqBxuT/understanding-deep-double-descent}{double descent}. At the moment we don't fully know why, but there's at least one plausible explanation. As the model capacity increases and the training error approaches zero, the model's fitting function is able to pass through every single training sample. The segments between data points are initially very erratic, leading to a large test error. However, as the model capacity continues to grow, the segments between data points become smoother and smoother, which makes the model fit to new test points better, decreasing test error. This is especially plausible when you consider that in a high dimensional input space, the training samples are extremely sparse (curse of high dimensionality). There's a large number of possible fitting functions passing through all training samples that the model can adopt. The model's tendency to adopt certain families of fitting functions is called inductive bias. Any factor that biases a solution to a set of equivalent solutions is called a regularizer. The hypothesis is that SGD is an implicit regularizer of smooth functions.
 
-\href{https://www.probabilitycourse.com/chapter3/3_2_2_expectation.php}{Expectation} is a weighted sum of all the possible values a random value could be. If the expectation of the magnitude of the weights are smaller than 1, the gradient vanishes, and if the expectation of the magnitude of the weights are larger than 1, the gradient explodes. Both problems can occur in the forward or backward pass. A solution to this is He initialization (also known as Kaiming initialization). He initialization keeps the variance of layer activations relatively stable. Initializing the weights to random values taken from a normal distribution centered around 0, with a variance (1), where $D_h$ is the dimension of the current layer, and $D_{h'}$ is the dimension of the next layer, keeps the gradients stable. This particular initialization is used with the ReLU activation function. If the current and next layer have the same dimension, then an average of the variance for the forward pass and backward pass doesn't have to be used (2).
+If the expectation of the magnitude of the weights are smaller than 1, the gradient vanishes, and if the expectation of the magnitude of the weights are larger than 1, the gradient explodes. Both problems can occur in the forward or backward pass. A solution to this is He initialization (also known as Kaiming initialization). He initialization keeps the variance of layer activations relatively stable. Initializing the weights to random values taken from a normal distribution centered around 0, with a variance (1), where $D_h$ is the dimension of the current layer, and $D_{h'}$ is the dimension of the next layer, keeps the gradients stable. This particular initialization is used with the ReLU activation function. If the current and next layer have the same dimension, then an average of the variance for the forward pass and backward pass doesn't have to be used (2).
 \begin{align*}
 \sigma^2 &= \frac{4}{D_h + D_{h'}}\tag{1}\\
 \sigma^2 &= \frac{2}{D_h}\tag{2}
@@ -230,7 +234,7 @@ Architectures using residual connections includes ResNet, DenseNet, \href{https:
 
 \section{Reccurent Neural Networks}
 Reccurent Neural Networks are models designed for processing sequences of data. Depending on how it's designed, an RNN can predict a sequence from a sequence, a sequence from a value or a value from a sequence. Here, sequence to sequence prediction will be used to \href{https://www.mdpi.com/information/information-15-00517/article_deploy/html/images/information-15-00517-g001-550.jpg}{explain how RNNs work}.
-An RNN is composed of hidden blocks $h_t$ which output a symbol $o_t$ in the output sequence given an input sequence symbol $x_t$ and a running sum of the previous hidden blocks $h_{t - 1}$. $t$ represents the position of a symbol in the sequence. Each hidden block is defined as $(1)$ and each output is defined as $(2)$, where $a_h$ and $a_o$ are the activation functions for the hidden blocks and the output, $b_h$ and $b_o$ are the biases for the hidden blocks and the output, $W_x$ is the input weight, $W_h$ is the hidden-state-to-hidden-state weight and $W_o$ is the output weight.
+An RNN is composed of hidden blocks $h_t$ which output a symbol $o_t$ in the output sequence given an input sequence symbol $x_t$ and a running sum of the previous hidden blocks $h_{t - 1}$. $h_t$ is a compressed representation of all the symbols previously seen in the input sequence at position $t$. Each hidden block is defined as $(1)$ and each output is defined as $(2)$, where $a_h$ and $a_o$ are the activation functions for the hidden blocks and the output, $b_h$ and $b_o$ are the biases for the hidden blocks and the output, $W_x$ is the input weight, $W_h$ is the hidden-state-to-hidden-state weight and $W_o$ is the output weight.
 \[ h_t = a_h(W_x x_t + b_h + W_h h_{t - 1}) \tag{1} \]
 \[ o_t = a_o(W_o h_t + b_o)) \tag{2} \]
 $W_x$, $W_h$ and $W_o$ are shared by all the hidden blocks in the network. Thus, an RNN can be thought of as the same shallow network that remembers a window of past symbols, reused repeatedly on each symbol in the input sequence,
@@ -260,5 +264,15 @@ The jump made at $(*)$, is because $\frac{\partial h_t}{\partial a_h}$ recursive
 &= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \frac{\partial h_t}{\partial a_h} h_{t - 1} \\
 &= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \sum_{k=1}^{t} (W_k^{\top})^{t - k} h_k \tag{*}
 \end{align*}
+
+RNNs have several flaws. The most obvious one is that RNNs are inherently sequential and thus unparallelizable. This makes them very inefficient to train and perform inference. Also, the number of symbols an RNN can remember at once is bound by floating point precision, which makes that number limited. Lastly, the vanishing/exploding gradient problem is still an issue, especially since each hidden block shares the same set of weights.
+
+\section{Transformers}
+
+Attention is a mechanism for encoding how relevant each input symbol is in predicting the next output symbol relative to the other input symbols. Instead of trying to encode the entire input sequence into a fixed length vector, an approach which falls apart as the input sequence length increases, certain symbols in the input sequence are emphasized more than others. This ensures that the encoded vector only contains a limited number of highly relevant symbols.
+
+- What do Query, Key and Value refer to?
+  - Where are we getting them from?
+  - Where are they stored?
 
 \end{document}

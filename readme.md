@@ -1,9 +1,8 @@
 Read:
-- [ ] Recurrent Neural Networks (RNNs): A gentle Introduction and Overview
-- [ ] Sequence to Sequence Learning with Neural Networks
-- [ ] Nueral machine translation by jointly learning to align and translate
-- [ ] Effective Approaches to Attention-based Neural Machine Translation
-- [ ] Attention Is All You Need
+- Attention Is All You Need
+- https://github.com/karpathy/nanogpt
+- https://github.com/karpathy/llm.c
+- https://github.com/karpathy/llama2.c
 
 # Ideas
 - Small projects:
