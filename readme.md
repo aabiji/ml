@@ -1,43 +1,11 @@
-Read:
-- Attention Is All You Need
-- https://github.com/karpathy/nanogpt
-- https://github.com/karpathy/llm.c
-- https://github.com/karpathy/llama2.c
+TODO:
+- Implement "Attention Is All You Need"
+  - Implement encoder and decoder in pytorch for sequence to sequence transduction (as in the original paper)
+    - Visualize the self-attention matrices as a heatmap
+  - Read the original GPT paper and implement and train a decoder only transformer to understand the basics of how LLMs work.
+  - Reimplement the LLM from scratch to fully understand.
 
-# Ideas
-- Small projects:
-  - Implement Dice Loss and train a U-Net that uses it
-
-  - Move cursor on screen through gaze analysis
-    - Write a blog article on how I did it
-
-  - Real time pose estimation with custom BlazePose implementation
-    - Write a blog article on how I did it
-
-  - Real time facial expression classification
-
-  - [Learn RL](https://x.com/jsuarez/status/1854855861295849793) and add an [env](https://x.com/jsuarez/status/1943692998975402064) to pufferlib
-
-  - Build a model to predict next period date from past period dates
-
-  - Model that recommends which movies and books to read
-
-  - Automatic differentiation engine like Pytorch or fix a bug in tinygrad.
-
-  - Model that takes live driving footage from Waymo's dataset and builds a map of the city roads in real time (SLAM?)
-
-  - RL for noise cancellation
-
-  - Contribute to Pytorch
-
-  - Kaggle competitions
-
-- Implement papers:
-  - Something interesting from [here](https://theaisummer.com/)
-
-  - Attention Is All You Need
-    - Implement multi-head attention, positional encoding, encoder, decoder.
-
+Interesting papers:
   - [Variational autoencoders](https://arxiv.org/pdf/1906.02691)
 
   - Gaussian splatting

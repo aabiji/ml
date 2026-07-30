@@ -23,6 +23,7 @@
 \item 3D classification models
 \item \href{https://suzyahyah.github.io/machine%20learning/2026/06/27/trouble-with-time-series.html}{The Unreasonable Difficulty of Time Series Forecasting}
 \item Robot that's general enough to work at a fast food restaurant (ex: Tim Hortons team member)
+\item What if we focused on efficiency rather than scale? Scaling laws are indeed magical, but blindly adding more parameters is a faulty approach. What if SOTA llms can be much, much smaller (small enough to run on a tiny gpu cluster).
 \end{itemize}
 
 \section{Math concepts}
@@ -269,12 +270,20 @@ RNNs have several flaws. The most obvious one is that RNNs are inherently sequen
 
 \section{Transformers}
 
-Prior to the use of Transformers, RNNs that followed an encoder-decoder structure were used to learn sequence transduction problems, such as machine translation. In \href{https://arxiv.org/abs/1409.0473}{Neural Machine Translation By Jointly Learning to Align and Translate}, the concept of using attention to better predict an output sequence was introduced. Attention is a mechanism for encoding how relevant each input symbol is in predicting the next output symbol, relative to the other input symbols. This is done by introducing a context vector which is just a weighted sum of vectors (in the paper, vectors are the encoder's hidden states, which are representations of the input sequence up to each input symbol position). Instead of trying to encode the entire input sequence into the context vector, an approach which falls apart as the input sequence length increases, certain symbols in the input sequence are emphasized more than others through the way that they're weighted.
+\href{https://arxiv.org/abs/1409.0473}{Neural Machine Translation By Jointly Learning to Align and Translate} introduced the concept of \textit{attention} to improve the way that RNN encoder-decoder models process sequences. By weighing certain input symbols more than others in the context vectors used by the decoder, the model can focus on the most relevant parts of the input sequence needed to predict the next output symbol. However, the way that the paper computes attention is extremely inefficient. Computing the context vector needed for each decoder step requires summing over every encoder hidden state, resulting in a quadratic time complexity. \href{https://arxiv.org/abs/1706.03762}{Attention Is All You Need} introduces the Transformer, a model architecture that performs better than the RNN models used previously while addressing their inefficiencies.
 
-The problem with using the model described in \textit{Neural Machine Translation By Jointly Learning to Align and Translate} isn't necessarily in the use of RNNs, but in the way that attention is computed; it's extremely inefficient. For the decoder to predict $n$ output symbols from $m$ input symbols, $m$ steps must be done sequentially in the encoder and $n$ steps must be done sequentially in the decoder. To calculate the context vector for each step in the decoder, you need to do a weighted sum of all $m$ encoder hidden states. To compute the associated weights used for the encoder hidden states, \textit{another model} is used to compute an alignment score between the current decoder hidden state and each encoder hidden state, which takes another $m$ steps. Therefore, the time complexity for generating the output sequence is $O(m + n * m^2)$.
+The input sequence is first converted into a sequence of tokens. For example, \href{https://en.wikipedia.org/wiki/Byte-pair_encoding}{Byte-pair encoding} is used to convert text into a sequence of tokens that are word fragments. Transformers are split into \href{https://machinelearningmastery.com/wp-content/uploads/2021/08/attention_research_1.png}{an encoder-decoder}. The encoder only needs to be ran once, while the decoder is ran once for each output token. Residual connections help information propagate through the network, and a fixed positional encoding function is used to help the network order its input embeddings.
 
-- What do Query, Key and Value refer to?
-  - Where are we getting them from?
-  - Where are they stored?
+Three different variants of multi-head attention are used. Self attention, where $Q = K = V$, is used to attend to the entire input sequence. Masked self attention, where a lower triangular matrix ($-\inf$ on the upper half, $0$ on the lower half) is added to the similarity matrix before softmax is applied. This ensures that only previous inputs are attended to. Cross attention, where $Q$ is from the very last encoder layer and $K, V$ are the decoder, allows each output symbol to attend to all input symbols at once.
+
+$Q \in \mathbb{R}^{n \times d_k}$, $K \in \mathbb{R}^{n \times d_k}$, $V \in \mathbb{R}^{n \times d_v}$, where $n$ is the number of embeddings and $d_k$ and $d_v$ are embedding dimensions. Each attention head computes how similar each query is to each key and stores that in a similarity matrix. The similarity matrix is scaled by $1 / d_k$ to prevent variance from growing as a result of the dot product. Each row in the similarity matrix is used to weigh how relevant each value is to the query. $Q, K, V$ are projected into a smaller subspace $h$ times, extracting $h$ key features from the input, and attention is performed in parallel for each feature.
+
+\begin{align*}
+\text{MultiHead}(Q, K, V) &= \text{Concat} \left( \text{head}_1, ..., \text{head}_h \right) W^O \\
+\text{head}_i &= \text{Attention}(Q W_i^Q, K W_i^K, V W_{i}^V) \\
+\text{Attention}(Q, K, V) &= \text{softmax} \left( \frac{Q K^{\top}}{\sqrt{d_k}} \right) V
+\end{align*}
+
+The feed forward network is composed of two layers, $\text{ReLU}(\mathbf{x} W_1 + b_1) W_2 + b_2$, which process each embedding individually in parallel after the multi-head attention has capture necessary context on each one.
 
 \end{document}
