@@ -11,19 +11,16 @@
 \section{Interesting}
 \begin{itemize}
 \item Why do neural networks work so well?
+  \item Mathematical intuition behind why different techniques work so well?
+  \item What are the techniques for visualizing a model's high dimensional parameter space in 3d?
+  \item Real reason for double descent?
+\item How is model training done on GPU on a low level?
+  \item What is CUDA?
+  \item How is model training is done on multiple GPUs?
 \item Are there efficient algorithms for searching for optimal hyperparameters?
-\item What are graph neural networks?
-\item Are there CNN architectures that don't require fixed input sizes?
-\item Can one visualize the parameter space of a model? What are the techniques for visualizing a high dimensional space in 3d?
-\item Distributed model training
-\item Reducing the memory requirements of a model during training
-\item Double descent
-\item Mathematical intuition behind why different techniques work so well?
-\item Does local minima become rarer in higher dimensional space? If so, why is SGD effective if its main selling point is using a random walk to avoid local minima?
-\item 3D classification models
 \item \href{https://suzyahyah.github.io/machine%20learning/2026/06/27/trouble-with-time-series.html}{The Unreasonable Difficulty of Time Series Forecasting}
-\item Robot that's general enough to work at a fast food restaurant (ex: Tim Hortons team member)
-\item What if we focused on efficiency rather than scale? Scaling laws are indeed magical, but blindly adding more parameters is a faulty approach. What if SOTA llms can be much, much smaller (small enough to run on a tiny gpu cluster).
+\item caling laws are indeed magical, but blindly adding more parameters is a faulty approach. What if SOTA models can be much, much smaller?
+\item What would a generalist autonomous robot need to do a fast food job?
 \end{itemize}
 
 \section{Math concepts}
@@ -191,7 +188,7 @@ The following are ways to improve model performance. Note that these aren't silv
 \section{Convolutional networks}
 A convolutional network is composed of a series of convolutional layers. Convolutional layers are a special subset of fully connected layers. A convolution is a weighted sum over a set of inputs using fixed parameters called a convolutional kernel or a filter. A valid convolution is a convolution that avoids inputs that are out of range, and a zero padded convolution is a convolution that uses zeros in place of inputs that are out of range. Stride is the step size used when sliding over the input and dilating is the number of zeros interspersed between the inputs plus one.
 
- A convolutional layer computes its outputs by convolving the input, adding a bias and passing the result through an activation function. Each kernel used to convolve corresponds to an output channel. Channels add depth to the convolutional layer. A convolutional layer is equivariant to translation because of the use of the same kernel over the entire image, and partially invariant to translation because of max pooling.
+A convolutional layer computes its outputs by convolving the input, adding a bias and passing the result through an activation function. Each kernel used to convolve corresponds to an output channel. Channels add depth to the convolutional layer. A convolutional layer is equivariant to translation because of the use of the same kernel over the entire image, and partially invariant to translation because of max pooling.
 
 For a 2D convolution on RGB images, a $C_i \times K \times K$ kernel is slid over the image, resulting in a $C_{h} \times C_{w}$ matrix. $C_i$ is the number of input channels, $C_{w}$ is the output width, $C_{h}$ is the output height. Hidden layers are 3D, unlike layers in feedforward networks that are always 1D. Each channel's hidden unit is computed as the following, where $\omega_{ij}$ is the kernel weights, $m$ is $\lceil K/2 \rceil$ and $n \in [1, C_o]$.
   \[ h_{nyx} = a\left[\boldsymbol{\beta} + \sum_{c=1}^{C_i} \sum_{i=1}^{K} \sum_{j = 1}^{K} \omega_{cij} x_{c,i-m,j-m}\right] \]
@@ -234,49 +231,25 @@ The residual network can be thought of an ensemble of smaller subnetworks summed
 Architectures using residual connections includes ResNet, DenseNet, \href{https://openaccess.thecvf.com/content/WACV2021/papers/Zhang_ResNet_or_DenseNet_Introducing_Dense_Shortcuts_to_ResNet_WACV_2021_paper.pdf}{Dense shortcuts for ResNet}, U-Net.
 
 \section{Reccurent Neural Networks}
-Reccurent Neural Networks are models designed for processing sequences of data. Depending on how it's designed, an RNN can predict a sequence from a sequence, a sequence from a value or a value from a sequence. Here, sequence to sequence prediction will be used to \href{https://www.mdpi.com/information/information-15-00517/article_deploy/html/images/information-15-00517-g001-550.jpg}{explain how RNNs work}.
+\href{https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks/}{Reccurent Neural Networks} are models designed for processing sequences of data. Depending on how it's designed, an RNN can predict a sequence from a sequence, a sequence from a value or a value from a sequence. Here, sequence to sequence prediction will be used to \href{https://www.mdpi.com/information/information-15-00517/article_deploy/html/images/information-15-00517-g001-550.jpg}{explain how RNNs work}.
 An RNN is composed of hidden blocks $h_t$ which output a symbol $o_t$ in the output sequence given an input sequence symbol $x_t$ and a running sum of the previous hidden blocks $h_{t - 1}$. $h_t$ is a compressed representation of all the symbols previously seen in the input sequence at position $t$. Each hidden block is defined as $(1)$ and each output is defined as $(2)$, where $a_h$ and $a_o$ are the activation functions for the hidden blocks and the output, $b_h$ and $b_o$ are the biases for the hidden blocks and the output, $W_x$ is the input weight, $W_h$ is the hidden-state-to-hidden-state weight and $W_o$ is the output weight.
 \[ h_t = a_h(W_x x_t + b_h + W_h h_{t - 1}) \tag{1} \]
 \[ o_t = a_o(W_o h_t + b_o) \tag{2} \]
 $W_x$, $W_h$ and $W_o$ are shared by all the hidden blocks in the network. Thus, an RNN can be thought of as the same shallow network that remembers a window of past symbols, reused repeatedly on each symbol in the input sequence,
 
-Backpropagation through time (BPTT) is an adaptation of the backpropagation algorithm for RNNs. The main difference is that the derivative of the loss with respect to $W_x$, $W_o$ and $W_h$ must be computed considering each symbol in the input sequence.
-The jump made at $(*)$, is because $\frac{\partial h_t}{\partial a_h}$ recursively depends on previous hidden blocks. As $t - k$ increases, $W_k^{\top}$ becomes increasingly larger and numerically unstable. So, $t - k \le c$, where $c$ is the window size, the upper bound on the number of symbols the RNN remembers at once.
-
-\begin{align*}
-\frac{\partial L(o, y)}{\partial W_o}
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial W_o} \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} \frac{\partial a_o}{\partial W_o} \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} h_t \\
-\end{align*}
-
-\begin{align*}
-\frac{\partial L(o, y)}{\partial W_x}
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial W_o} \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} \frac{\partial a_o}{\partial h_t} \frac{\partial h_t}{\partial a_h} \frac{\partial a_h}{\partial W_x} \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \frac{\partial h_t}{\partial a_h} x_t \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \sum_{k=1}^{t} (W_k^{\top})^{t - k} x_k \tag{*}
-\end{align*}
-
-\begin{align*}
-\frac{\partial L(o, y)}{\partial W_h}
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial W_o} \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} \frac{\partial a_o}{\partial h_t} \frac{\partial h_t}{\partial a_h} \frac{\partial a_h}{\partial W_x} \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \frac{\partial h_t}{\partial a_h} h_{t - 1} \\
-&= \sum_{t = 1}^{T} \frac{\partial l_t(o_t, y_t)}{\partial o_t} \frac{\partial o_t}{\partial a_o} W_o \sum_{k=1}^{t} (W_k^{\top})^{t - k} h_k \tag{*}
-\end{align*}
-
 RNNs have several flaws. The most obvious one is that RNNs are inherently sequential and thus unparallelizable. This makes them very inefficient to train and perform inference. Also, the number of symbols an RNN can remember at once is bound by floating point precision, which makes that number limited. Lastly, the vanishing/exploding gradient problem is still an issue, especially since each hidden block shares the same set of weights.
 
 \section{Transformers}
 
-\href{https://arxiv.org/abs/1409.0473}{Neural Machine Translation By Jointly Learning to Align and Translate} introduced the concept of \textit{attention} to improve the way that RNN encoder-decoder models process sequences. By weighing certain input symbols more than others in the context vectors used by the decoder, the model can focus on the most relevant parts of the input sequence needed to predict the next output symbol. However, the way that the paper computes attention is extremely inefficient. Computing the context vector needed for each decoder step requires summing over every encoder hidden state, resulting in a quadratic time complexity. \href{https://arxiv.org/abs/1706.03762}{Attention Is All You Need} introduces the Transformer, a model architecture that performs better than the RNN models used previously while addressing their inefficiencies.
+\href{https://arxiv.org/abs/1409.0473}{Neural Machine Translation By Jointly Learning to Align and Translate} introduced the concept of \textit{attention} to improve the way that RNN encoder-decoder models process sequences. By weighing certain input symbols more than others in the context vectors used by the decoder, the model can focus on the most relevant parts of the input sequence needed to predict the next output symbol. However, the sequential nature of RNNs prevents parallelization, and the compute needed to process a sequence grows proportionally to its length. \href{https://arxiv.org/abs/1706.03762}{Attention Is All You Need} introduces the Transformer, a model architecture that performs better than the RNN models used previously while addressing their inefficiencies.
 
-The input sequence is first converted into a sequence of tokens. For example, \href{https://en.wikipedia.org/wiki/Byte-pair_encoding}{Byte-pair encoding} is used to convert text into a sequence of tokens that are word fragments. Transformers are split into \href{https://machinelearningmastery.com/wp-content/uploads/2021/08/attention_research_1.png}{an encoder-decoder}. The encoder only needs to be ran once, while the decoder is ran once for each output token. Residual connections help information propagate through the network, and a fixed positional encoding function is used to help the network order its input embeddings.
+The input sequence is first converted into a sequence of tokens. For example, \href{https://en.wikipedia.org/wiki/Byte-pair_encoding}{Byte-pair encoding} can be used to convert text into a sequence of tokens that are word fragments. These tokens are then processed by the Transformer's \href{https://machinelearningmastery.com/wp-content/uploads/2021/08/attention_research_1.png}{encoder and decoder}. Residual connections help information propagate through the network, and a fixed positional encoding function is used to help the network order its input embeddings.
 
-Three different variants of multi-head attention are used. Self attention, where $Q = K = V$, is used to attend to the entire input sequence. Masked self attention, where a lower triangular matrix ($-\inf$ on the upper half, $0$ on the lower half) is added to the similarity matrix before softmax is applied. This ensures that only previous inputs are attended to. Cross attention, where $Q$ is from the very last encoder layer and $K, V$ are the decoder, allows each output symbol to attend to all input symbols at once.
+Three different variants of multi-head attention are used. Self-attention, where the query, keys and values are derived from the same input sequence, is used to attend to the entire input sequence. Masked self-attention, where a causal mask ($0$ below the diagonal, $-\infty$ on and above the diagonal) is added to the similarity matrix before softmax is applied, preventing each position from attending to future tokens. Cross attention, where $Q$ is from the decoder layer and $K, V$ are from the very last encoder layer, allows each output symbol to attend to all input symbols at once.
 
-$Q \in \mathbb{R}^{n \times d_k}$, $K \in \mathbb{R}^{n \times d_k}$, $V \in \mathbb{R}^{n \times d_v}$, where $n$ is the number of embeddings and $d_k$ and $d_v$ are embedding dimensions. Each attention head computes how similar each query is to each key and stores that in a similarity matrix. The similarity matrix is scaled by $1 / d_k$ to prevent variance from growing as a result of the dot product. Each row in the similarity matrix is used to weigh how relevant each value is to the query. $Q, K, V$ are projected into a smaller subspace $h$ times, extracting $h$ key features from the input, and attention is performed in parallel for each feature.
+$Q \in \mathbb{R}^{n_q \times d_k}$, $K \in \mathbb{R}^{n_k \times d_k}$, $V \in \mathbb{R}^{n_k \times d_v}$, where $d_k$ and $d_v$ are embedding dimensions of the keys and values. Each attention head computes how similar each query is to each key and stores that in a similarity matrix. The similarity matrix is scaled by $1 / \sqrt{d_k}$ which prevents the dot product from growing excessively large as $d_k$ increases, which would cause softmax to become overly peaked, resulting in tiny gradients. Each row in the similarity matrix is used to weigh how relevant each value is to the query.
+
+The input embeddings are projected into a smaller vector subspace $h$ times, producing $h$ different representations of $Q, K, V$. This allows each head to compute attention using a different learned notion of similarity.
 
 \begin{align*}
 \text{MultiHead}(Q, K, V) &= \text{Concat} \left( \text{head}_1, ..., \text{head}_h \right) W^O \\
@@ -284,6 +257,11 @@ $Q \in \mathbb{R}^{n \times d_k}$, $K \in \mathbb{R}^{n \times d_k}$, $V \in \ma
 \text{Attention}(Q, K, V) &= \text{softmax} \left( \frac{Q K^{\top}}{\sqrt{d_k}} \right) V
 \end{align*}
 
-The feed forward network is composed of two layers, $\text{ReLU}(\mathbf{x} W_1 + b_1) W_2 + b_2$, which process each embedding individually in parallel after the multi-head attention has capture necessary context on each one.
+The feed forward network is composed of two layers, $\text{ReLU}(\mathbf{x} W_1 + b_1) W_2 + b_2$, which process each embedding independently in parallel after the multi-head attention has incorporated necessary context on each one.
+
+There is still room for improvement. The time complexity for computing attention is still quadratic...
+What exactly are embeddings? What are their geometric properties?
+Implementation details?
+training vs inference?
 
 \end{document}
