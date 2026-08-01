@@ -2,4 +2,5 @@ data
 projects/__pycache__
 pdf
 env
+.env
 .venv
