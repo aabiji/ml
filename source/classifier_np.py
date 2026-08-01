@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import datasets
+import local_datasets
 
 def init_network(input_dim, output_dim, hidden_dim, depth):
     bias   = [np.zeros((hidden_dim, 1)) for _ in range(depth)]
@@ -69,8 +69,8 @@ def adam(m, v, t, beta1, beta2, alpha, depth, params, gradients):
         amplified_v = v[i] / (1 - np.pow(beta2, t + 1))
         params[i] -= alpha * amplified_m / (np.sqrt(amplified_v) + 0.001)
 
-#x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_iris())
-x_train, y_train, x_test, y_test = datasets.to_nparray(*datasets.load_mnist(
+#x_train, y_train, x_test, y_test = local_datasets.to_nparray(*local_datasets.load_iris())
+x_train, y_train, x_test, y_test = local_datasets.to_nparray(*local_datasets.load_mnist(
     "../data/mnist/train-images.idx3-ubyte",
     "../data/mnist/train-labels.idx1-ubyte",
     "../data/mnist/t10k-images.idx3-ubyte",

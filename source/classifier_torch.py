@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 import numpy as np
 import matplotlib.pyplot as plt
-import datasets
+import local_datasets
 
 class Model(nn.Module):
     def __init__(self, d_i, d_k, d_o, num_hidden, dropout):
@@ -70,7 +70,7 @@ def train_model(model, loader, x_test, y_test, epochs, lr):
 
     return errors
 
-x_train, y_train, x_test, y_test = datasets.load_mnist(
+x_train, y_train, x_test, y_test = local_datasets.load_mnist(
     "../data/mnist/train-images.idx3-ubyte",
     "../data/mnist/train-labels.idx1-ubyte",
     "../data/mnist/t10k-images.idx3-ubyte",

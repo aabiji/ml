@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import math
 from IPython.display import clear_output
 from IPython import display
-import datasets
+import local_datasets
 
 
 def random_pad_crop(img_batch, pad, flip_percentage):
@@ -172,7 +172,7 @@ class Net(nn.Module):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")
 
-batches, classes = datasets.load_cifar10(device)
+batches, classes = local_datasets.load_cifar10(device)
 training_batches, test_batch = batches[:5], batches[5]
 
 model = Net().to(device)
