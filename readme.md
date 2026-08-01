@@ -1,9 +1,17 @@
-TODO:
+Project ideas:
+
 - Implement "Attention Is All You Need"
   - Implement encoder and decoder in pytorch for sequence to sequence transduction (as in the original paper)
     - Visualize the self-attention matrices as a heatmap
   - Read the original GPT paper and implement and train a decoder only transformer to understand the basics of how LLMs work.
   - Reimplement the LLM from scratch to fully understand.
+
+- Movie recommendation model:
+  - descriptions, reviews, genre, actors list, and rating as inputs
+  - convert to an embedding
+  - do math to find embeddings that are close together, which should be similar
+
+- Understand, implement and train [SAM](https://arxiv.org/pdf/2304.02643) and build a real time webcam background remover
 
 Interesting papers:
   - [Variational autoencoders](https://arxiv.org/pdf/1906.02691)
