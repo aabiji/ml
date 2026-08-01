@@ -13,7 +13,7 @@ Project ideas:
 
 - Understand, implement and train [SAM](https://arxiv.org/pdf/2304.02643) and build a real time webcam background remover
 
-Interesting papers:
+Interesting:
   - [Variational autoencoders](https://arxiv.org/pdf/1906.02691)
 
   - Gaussian splatting
@@ -32,4 +32,6 @@ Interesting papers:
     - [Whisper](https://arxiv.org/pdf/2212.04356)
 
   - [AlphaZero](https://arxiv.org/pdf/1712.01815)
+
+  - [Computational Biology](https://www.youtube.com/watch?v=9FrNuTFz4Zs)
 
