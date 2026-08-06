@@ -259,4 +259,6 @@ Multi-head attention is used as the core attention mechanism. First, the input e
 \text{Attention}(Q, K, V) &= \text{softmax} \left( \frac{Q K^{\top}}{\sqrt{d_k}} \odot M \right) V
 \end{align*}
 
+After the embeddings, encoder layers and decoder layers, there is a final linear layer that outputs a $n \times V$ matrix of probability distribution, where $n$ is the number of embeddings and $V$ is the vocabulary size. Each row in the matrix corresponds to a probability distribution of the following word. For example, if the input is "<BOS> I like", the output might correpond to "I like cats". "I" is predicted to come after "<BOS>", "cats" is predicted to come after "like" and so on. Thus, during training the output token sequence must be shifted right before being fed into the Transformer so that the model doesn't learn to simply copy the last token in the sequence.
+
 \end{document}
